@@ -70,6 +70,7 @@ func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	fmt.Printf("Received move command: %s %d\n", direction, time)
+	move(direction, time)
 }
 
 func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
