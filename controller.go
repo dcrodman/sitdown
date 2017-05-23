@@ -10,6 +10,7 @@ func main() {
 		panic(err)
 	}
 	defer rpio.Close()
+	defer pin.PullOff()
 
 	pin := rpio.Pin(21)
 	pin.Output()
