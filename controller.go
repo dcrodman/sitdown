@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/stianeikeland/go-rpio"
+	"time"
 )
 
 const (
@@ -15,6 +16,20 @@ func main() {
 	}
 	defer rpio.Close()
 
+	raise()
+	sleep(2000)
+	stopRaising()
+
+	lower()
+	sleep(2000)
+	stopLowering()
+
+	pinButtonUp.PullOff()
+	pinButtonDown.PullOff()
+}
+
+func sleep(ms int) {
+	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
 
 func raise() {
@@ -25,5 +40,18 @@ func raise() {
 
 func stopRaising() {
 	pinButtonUp.Output()
+	pinButtonUp.PullUp()
+	pinButtonUp.High()
+}
 
+func lower() {
+	pinButtonDown.Output()
+	pinButtonDown.PullUp()
+	pinButtonDown.Low()
+}
+
+func stopLowering() {
+	pinButtonDown.Output()
+	pinButtonDown.PullUp()
+	pinButtonDown.High()
 }
