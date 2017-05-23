@@ -12,9 +12,12 @@ func main() {
 	defer rpio.Close()
 
 	pin := rpio.Pin(21)
+	pin.Output()
+
 	for i := 0; i < 5; i++ {
 		pin.PullDown()
 	}
 
+	pin.PullOff()
 	fmt.Println("It works")
 }
