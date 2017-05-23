@@ -1,8 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"github.com/stianeikeland/go-rpio"
+)
+
+const (
+	pinButtonUp   rpio.Pin = rpio.Pin(16)
+	pinButtonDown rpio.Pin = rpio.Pin(12)
 )
 
 func main() {
@@ -10,15 +14,16 @@ func main() {
 		panic(err)
 	}
 	defer rpio.Close()
-	defer pin.PullOff()
 
-	pin := rpio.Pin(21)
-	pin.Output()
+}
 
-	for i := 0; i < 5; i++ {
-		pin.PullDown()
-	}
+func raise() {
+	pinButtonUp.Output()
+	pinButtonUp.PullUp()
+	pinButtonUp.Low()
+}
 
-	pin.PullOff()
-	fmt.Println("It works")
+func stopRaising() {
+	pinButtonUp.Output()
+
 }
