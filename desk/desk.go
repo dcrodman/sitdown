@@ -6,26 +6,30 @@ import (
 	"sync"
 	"encoding/hex"
 	"fmt"
+	"io"
 )
 
 const (
 	pinButtonUp   rpio.Pin = rpio.Pin(16)
 	pinButtonDown rpio.Pin = rpio.Pin(12)
-	serialOptions serial.OpenOptions = serial.OpenOptions{
-		PortName: "/dev/serial0",
-		BaudRate: 9600,
-	}
 )
 
 var (
 	moveMux = &sync.Mutex{}
+	serialFile io.ReadWriteCloser 
+	serialOptions = serial.OpenOptions{
+		PortName: "/dev/serial0",
+		BaudRate: 9600,
+	}
 )
 
 func Setup() {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
-	f, err := serial.Open(serialOptions)
+	if serialFile, err := serial.Open(serialOptions); err != nil {
+		panic(err)
+	}
 }
 
 func Cleanup() {
@@ -66,10 +70,9 @@ func StopLowering() {
 	pinButtonDown.High()
 }
 
-func Height() {
-	f, err := serial.Open(options)
+func Height() []byte {
 	buf := make([]byte, 32)
-	n, err := f.Read(buf)
+	n, err := serialFile.Read(buf)
 	if err != nil {
 		panic(err)
 	} else {
