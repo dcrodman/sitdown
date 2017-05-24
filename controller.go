@@ -74,7 +74,7 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 }
 
 func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(responseWriter, "Current height: %d\n", desk.Height())
+	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
 }
 
 func move(direction string, time int) {

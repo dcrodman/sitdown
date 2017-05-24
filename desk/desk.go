@@ -14,6 +14,7 @@ const (
 	pinButtonDown rpio.Pin = rpio.Pin(12)
 	maxHeight     int = 219
 	minHeight     int = 25
+	baseHeight    float32 = 28.1
 )
 
 var (
@@ -31,7 +32,7 @@ var (
 		Rs485RtsHighDuringSend: false,
 		Rs485RtsHighAfterSend: false,
 	}
-	currentHeight int
+	currentHeight float32 
 )
 
 func Setup() {
@@ -92,22 +93,21 @@ func stop() {
 	pinButtonDown.High()
 }
 
-func Height() int {
+func Height() float32 {
 	return currentHeight
 }
 
 func heightMonitor() {
-	height := -1
 	for {
 		data := make([]byte, 4)
 		n, err := serialFile.Read(data)
 		if n < 4 || err != nil {
 			panic(err)
 		} else {
-			height = 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
-			if height != currentHeight {
-				fmt.Printf("Height changed to %d%% from %d%%\n", height, currentHeight)
-				currentHeight = height
+			newHeight := baseHeight + float32(int(data[3]) - minHeight) / 10
+			if newHeight != currentHeight {
+				fmt.Printf("Height changed to %.1f from %.1f\n", newHeight, currentHeight)
+				currentHeight = newHeight
 			}
 		}
 	}
