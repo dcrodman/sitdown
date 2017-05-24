@@ -6,6 +6,8 @@ import (
 	"sync"
 	"fmt"
 	"io"
+	"bytes"
+	"encoding/binary"
 )
 
 const (
@@ -80,15 +82,15 @@ func StopLowering() {
 	pinButtonDown.High()
 }
 
-func Height() byte {
-	buf := make([]byte, 4)
-	n, err := serialFile.Read(buf)
+func Height() int {
+	data := make([]byte, 4)
+	n, err := serialFile.Read(data)
 	if err != nil {
 		panic(err)
 	} else if n < 4 {
 		panic("Corrupt height response")
 	} else {
-		height := (buf[3] - minHeight) / (maxHeight - minHeight)
+		height := 100 * (int(buf[3]) - minHeight) / (maxHeight - minHeight)
 		fmt.Printf("Height: %d%%\n", height)
 		return height
 	}
