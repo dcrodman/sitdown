@@ -4,7 +4,6 @@ import (
 	"github.com/stianeikeland/go-rpio"
 	"github.com/jacobsa/go-serial/serial"
 	"sync"
-	"encoding/hex"
 	"fmt"
 	"io"
 )
@@ -85,7 +84,7 @@ func Height() byte {
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Println("Rx: ", hex.EncodeToString(buf[3]))
+		fmt.Printf("Rx: %d\n", buf[3])
 		return buf[3]
 	}
 }
