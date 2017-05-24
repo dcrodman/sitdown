@@ -84,7 +84,7 @@ func LowerForDuration(duration int) {
 func ChangeToHeight(height float32) {
 	lock()
 	defer unlock()
-	acceptableRange := 0.75
+	var acceptableRange float32 = 0.75
 	for math.Abs(height - currentHeight) < acceptableRange {
 		acceptableRange *= 0.75
 	}
