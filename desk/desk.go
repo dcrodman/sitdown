@@ -85,8 +85,7 @@ func Height() byte {
 	if err != nil {
 		panic(err)
 	} else {
-		buf = buf[3]
-		fmt.Println("Rx: ", hex.EncodeToString(buf))
-		return buf
+		fmt.Println("Rx: ", hex.EncodeToString(buf[3]))
+		return buf[3]
 	}
 }
