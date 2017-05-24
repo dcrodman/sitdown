@@ -34,7 +34,9 @@ func main() {
 	http.HandleFunc("/set", HandleSet)
 	http.HandleFunc("/height", HandleHeight)
 	fmt.Println("Starting HTTP server")
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
 
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
