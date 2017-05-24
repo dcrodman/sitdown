@@ -4,12 +4,9 @@ import (
 	"github.com/stianeikeland/go-rpio"
 	"github.com/jacobsa/go-serial/serial"
 	"sync"
-<<<<<<< HEAD
 	"fmt"
 	"io"
-=======
 	"time"
->>>>>>> master
 )
 
 const (
@@ -41,18 +38,15 @@ func Setup() {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
-<<<<<<< HEAD
 	var err error
 	if serialFile, err = serial.Open(serialOptions); err != nil {
 		panic(err)
 	}
 	go heightMonitor()
-=======
 	pinButtonUp.Output()
 	pinButtonUp.PullUp()
 	pinButtonDown.Output()
 	pinButtonDown.PullUp()
->>>>>>> master
 }
 
 func Cleanup() {
