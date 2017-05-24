@@ -80,6 +80,23 @@ func LowerForDuration(duration int) {
 	stop()
 }
 
+func ChangeToHeight(height float32) {
+	lock()
+	defer unlock()
+	for {
+		if currentHeight == height {
+			return
+		} else if currentHeight > height {
+			pinButtonUp.High()
+			pinButtonDown.Low()
+		} else if currentHeight < height {
+			pinButtonDown.High()
+			pinButtonUp.Low()
+		}
+		sleep(100)
+	}
+}
+
 func raise() {
 	pinButtonUp.Low()
 }

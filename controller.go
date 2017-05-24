@@ -58,6 +58,7 @@ func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 
 	fmt.Printf("Received move command: %s %d\n", direction, duration)
 	move(direction, duration)
+	fmt.Fprintf(responseWriter, "Moved to %.1f", desk.Height())
 }
 
 func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
@@ -66,13 +67,15 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	height, err := strconv.Atoi(vals["height"][0])
-	if err != nil || height < 0 || height > 100 {
+	height, err := strconv.ParseFloat(vals["height"][0], 32)
+	if err != nil || height < 28.1 || height > 47.5 {
 		fmt.Printf("Invalid height: %d\n", height)
 		return
 	}
 
-	fmt.Printf("Received set command: %d\n", height)
+	fmt.Printf("Received set command: %.1f\n", height)
+	desk.ChangeToHeight(height)
+	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
 }
 
 func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
