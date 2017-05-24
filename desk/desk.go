@@ -11,6 +11,8 @@ import (
 const (
 	pinButtonUp   rpio.Pin = rpio.Pin(16)
 	pinButtonDown rpio.Pin = rpio.Pin(12)
+	maxHeight     uint = 219
+	minHeight     uint = 25
 )
 
 var (
@@ -86,7 +88,8 @@ func Height() byte {
 	} else if n < 4 {
 		panic("Corrupt height response")
 	} else {
-		fmt.Printf("Rx: %d\n", buf[3])
-		return buf[3]
+		height := (buf[3] - minHeight) / (maxHeight - minHeight)
+		fmt.Printf("Height: %d%%\n", height)
+		return height
 	}
 }
