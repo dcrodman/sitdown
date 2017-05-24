@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pubnub/go/messaging"
 	"os"
+	"reflect"
 	"strings"
 )
 
@@ -54,6 +55,9 @@ func PubNubSubscribe() {
 		for {
 			select {
 			case msg := <-successChan:
+				if reflect.TypeOf(msg[0]).Kind() == reflect.Array {
+					command := []string(msg[0])[0]
+				}
 				fmt.Println("Received message on success channel: " + string(msg))
 			case err := <-errorChan:
 				fmt.Println("Received message on error channel: " + string(err))
