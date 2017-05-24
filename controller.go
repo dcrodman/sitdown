@@ -32,6 +32,7 @@ func main() {
 
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
+	http.HandleFunc("/height", HandleHeight)
 	fmt.Println("Starting HTTP server")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
@@ -72,6 +73,10 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	fmt.Printf("Received set command: %d\n", height)
+}
+
+func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
+	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
 }
 
 func move(direction string, time int) {
