@@ -11,8 +11,8 @@ import (
 const (
 	pinButtonUp   rpio.Pin = rpio.Pin(16)
 	pinButtonDown rpio.Pin = rpio.Pin(12)
-	maxHeight     uint = 219
-	minHeight     uint = 25
+	maxHeight     int = 219
+	minHeight     int = 25
 )
 
 var (
