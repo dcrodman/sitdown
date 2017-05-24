@@ -83,8 +83,8 @@ func LowerForDuration(duration int) {
 func ChangeToHeight(height float32) {
 	lock()
 	defer unlock()
-	destLow := height - 0.3
-	destHigh := height + 0.3
+	destLow := height - 0.7
+	destHigh := height + 0.7
 	for {
 		if destLow <= currentHeight && currentHeight <= destHigh {
 			stop()
