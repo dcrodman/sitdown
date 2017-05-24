@@ -91,8 +91,15 @@ func handleCommand(command string) {
 			move(splitCommand[1], int(duration))
 		}
 		return
+	} else if strings.Contains(command, "set") {
+                splitCommand := strings.Split(command, " ")
+		switch len := len(splitCommand); len {
+		case 1:
+			fmt.Println("Missing height for set command (skipping)")
+		default:
+			setHeight(splitCommand[1])
+		}
 	}
-
 	switch command {
 	default:
 		fmt.Printf("Unrecognized command %s; skipping\n", command)
