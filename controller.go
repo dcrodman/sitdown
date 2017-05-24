@@ -7,22 +7,26 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"flag"
 )
 
 func main() {
-	for _, arg := range os.Args {
-		switch arg {
-		case "-c":
-			EnterCommandMode()
-			os.Exit(0)
-		case "-t", "--test":
-			desk.Setup()
-			defer desk.Cleanup()
+	commandMode := flag.Bool("c", false, "Start the server in command mode")
+	testMode := flag.Bool("t", false, "Run a quick test that moves the desk up then down")
+	port := flag.String("p", "8080", "Listen on the specified port")
+	flag.Parse()
 
-			move("up", 2000)
-			move("down", 2500)
-			os.Exit(0)
-		}
+	if commandMode {
+		EnterCommandMode()
+		os.Exit(0)
+	}
+	if testMode {
+		desk.Setup()
+		defer desk.Cleanup()
+
+		move("up", 2000)
+		move("down", 2500)
+		os.Exit(0)
 	}
 
 	desk.Setup()
@@ -33,7 +37,7 @@ func main() {
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
 	fmt.Println("Starting HTTP server")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":" + *port, nil); err != nil {
 		panic(err)
 	}
 }
