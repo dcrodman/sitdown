@@ -21,7 +21,7 @@ func Setup() {
 }
 
 func Cleanup() {
-	rpio.Close()
+	defer rpio.Close()
 	pinButtonUp.PullOff()
 	pinButtonDown.PullOff()
 }
