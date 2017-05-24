@@ -16,14 +16,17 @@ func main() {
 			EnterCommandMode()
 			os.Exit(0)
 		case "-t", "--test":
-			InitializePins()
+			desk.Setup()
+			defer desk.Cleanup()
+
 			move("up", 2000)
-			move("down", 2000)
+			move("down", 2500)
 			os.Exit(0)
 		}
 	}
 
-	InitializePins()
+	desk.Setup()
+	defer desk.Cleanup()
 
 	PubNubSubscribe()
 	http.HandleFunc("/move", HandleMove)
@@ -32,8 +35,6 @@ func main() {
 }
 
 func InitializePins() {
-	desk.Setup()
-	defer desk.Cleanup()
 }
 
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
