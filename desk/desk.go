@@ -30,6 +30,7 @@ var (
 		Rs485RtsHighDuringSend: false,
 		Rs485RtsHighAfterSend: false,
 	}
+	currentHeight int
 )
 
 func Setup() {
@@ -40,6 +41,7 @@ func Setup() {
 	if serialFile, err = serial.Open(serialOptions); err != nil {
 		panic(err)
 	}
+	go heightMonitor()
 }
 
 func Cleanup() {
@@ -81,21 +83,22 @@ func StopLowering() {
 }
 
 func Height() int {
+	return currentHeight
+}
+
+func heightMonitor() {
 	height := -1
 	for {
 		data := make([]byte, 4)
 		n, err := serialFile.Read(data)
 		if err != nil {
-			if err == io.EOF {
-				return height
-			} else {
-				panic(err)
-			}
-		} else if n < 4 {
-			panic("Corrupt height response")
+			panic(err)
 		} else {
 			height := 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
-			fmt.Printf("Height: %d%%\n", height)
+			if height != currentHeight) {
+				fmt.Printf("Height changed to %d%% from %d%%\n", height, currentHeight)
+				currentHeight = height
+			}
 		}
 	}
 }
