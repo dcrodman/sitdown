@@ -6,8 +6,6 @@ import (
 	"sync"
 	"fmt"
 	"io"
-	"bytes"
-	"encoding/binary"
 )
 
 const (
@@ -90,7 +88,7 @@ func Height() int {
 	} else if n < 4 {
 		panic("Corrupt height response")
 	} else {
-		height := 100 * (int(buf[3]) - minHeight) / (maxHeight - minHeight)
+		height := 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
 		fmt.Printf("Height: %d%%\n", height)
 		return height
 	}
