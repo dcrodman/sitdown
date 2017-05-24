@@ -79,7 +79,7 @@ func StopLowering() {
 	pinButtonDown.High()
 }
 
-func Height() []byte {
+func Height() byte {
 	buf := make([]byte, 4)
 	n, err := serialFile.Read(buf)
 	if err != nil {
