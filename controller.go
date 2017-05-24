@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"fmt"
 	"strconv"
-	"time"
 	"os"
 	"github.com/dcrodman/sitdown/desk"
 )
