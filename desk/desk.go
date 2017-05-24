@@ -91,10 +91,10 @@ func heightMonitor() {
 	for {
 		data := make([]byte, 4)
 		n, err := serialFile.Read(data)
-		if err != nil {
+		if n < 4 || err != nil {
 			panic(err)
 		} else {
-			height := 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
+			height = 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
 			if height != currentHeight {
 				fmt.Printf("Height changed to %d%% from %d%%\n", height, currentHeight)
 				currentHeight = height
