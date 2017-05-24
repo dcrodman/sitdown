@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/pubnub/go/messaging"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -14,6 +14,12 @@ const (
 	subscribeKey   = "sub-c-04ca627a-4008-11e7-86e2-02ee2ddab7fe"
 	publishKey     = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
 )
+
+type ChannelMessage struct {
+	data       interface{}
+	subMessage string
+	channel    string
+}
 
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
@@ -54,11 +60,20 @@ func PubNubSubscribe() {
 	go func() {
 		for {
 			select {
-			case msg := <-successChan:
-				if reflect.TypeOf(msg[0]).Kind() == reflect.Array {
-					command := []string(msg[0])[0]
+			case response := <-successChan:
+				var msg ChannelMessage
+				if err := json.Unmarshal(response, &msg); err != nil {
+					fmt.Println("Could not process command: " + err.Error())
 				}
-				fmt.Println("Received message on success channel: " + string(msg))
+
+				switch msg.data.(type) {
+				case []string:
+					fmt.Println(msg.data.([]string)[0])
+				default:
+					fmt.Printf("msg[0] is of type %v\n", msg.data)
+				}
+
+				fmt.Printf("Received message on success channel: %v\n", msg)
 			case err := <-errorChan:
 				fmt.Println("Received message on error channel: " + string(err))
 			}
