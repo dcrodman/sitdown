@@ -85,6 +85,7 @@ func ChangeToHeight(height float32) {
 	defer unlock()
 	for {
 		if currentHeight == height {
+			stop()
 			return
 		} else if currentHeight > height {
 			pinButtonUp.High()

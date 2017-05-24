@@ -74,7 +74,7 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	fmt.Printf("Received set command: %.1f\n", height)
-	desk.ChangeToHeight(height)
+	desk.ChangeToHeight(float32(height))
 	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
 }
 
