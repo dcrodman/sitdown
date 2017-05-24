@@ -72,20 +72,10 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 }
 
 func move(direction string, time int) {
-	desk.Lock()
-	defer desk.Unlock()
 	switch direction {
 	case "up":
-		desk.Raise()
-		sleep(time)
-		desk.StopRaising()
+		desk.RaiseForDuration(time)
 	case "down":
-		desk.Lower()
-		sleep(time)
-		desk.StopLowering()
+		desk.LowerForDuration(time)
 	}
-}
-
-func sleep(ms int) {
-	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
