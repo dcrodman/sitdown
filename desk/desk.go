@@ -20,6 +20,14 @@ var (
 	serialOptions = serial.OpenOptions{
 		PortName: "/dev/serial0",
 		BaudRate: 9600,
+		DataBits: 8,
+		StopBits: 1,
+		MinimumReadSize: 0,
+		InterCharacterTimeout: 100,
+		ParityMode: serial.PARITY_NONE,
+		Rs485Enable: false,
+		Rs485RtsHighDuringSend: false,
+		Rs485RtsHighAfterSend: false,
 	}
 )
 
