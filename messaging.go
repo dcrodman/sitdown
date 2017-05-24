@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/pubnub/go/messaging"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -60,17 +62,39 @@ func PubNubSubscribe() {
 					fmt.Println("Could not process command: " + err.Error())
 				}
 
-				switch msg[0].(type) {
-				case []string:
-					fmt.Println(msg[0].([]string)[0])
+				var command string
+				switch m := reflect.TypeOf(msg[0]).Kind(); m {
+				case reflect.Slice:
+					command = msg[0].([]interface{})[0].(string)
+					fmt.Printf("Received command: %v\n", command)
+					handleCommand(command)
 				default:
-					fmt.Printf("msg[0] is of type %v\n", msg[0])
+					fmt.Printf("Received message on success channel: %v\n", msg)
 				}
-
-				fmt.Printf("Received message on success channel: %v\n", msg)
 			case err := <-errorChan:
 				fmt.Println("Received message on error channel: " + string(err))
 			}
 		}
 	}()
+}
+
+func handleCommand(command string) {
+	if strings.Contains(command, "move") {
+		splitCommand := strings.Split(command, " ")
+		switch len := len(splitCommand); len {
+		case 1:
+			fmt.Println("Missing direction from move command (skipping)")
+		case 2:
+			move(splitCommand[1], 1000)
+		default:
+			duration, _ := strconv.ParseInt(splitCommand[2], 10, 32)
+			move(splitCommand[1], int(duration))
+		}
+		return
+	}
+
+	switch command {
+	default:
+		fmt.Printf("Unrecognized command %s; skipping\n", command)
+	}
 }
