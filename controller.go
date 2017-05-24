@@ -33,6 +33,7 @@ func main() {
 	} else {
 		move("up", 2000)
 		move("down", 2000)
+		desk.Height()
 	}
 }
 
