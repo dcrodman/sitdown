@@ -95,7 +95,7 @@ func heightMonitor() {
 			panic(err)
 		} else {
 			height := 100 * (int(data[3]) - minHeight) / (maxHeight - minHeight)
-			if height != currentHeight) {
+			if height != currentHeight {
 				fmt.Printf("Height changed to %d%% from %d%%\n", height, currentHeight)
 				currentHeight = height
 			}
