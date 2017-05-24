@@ -16,11 +16,11 @@ func main() {
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
-	if commandMode {
+	if *commandMode {
 		EnterCommandMode()
 		os.Exit(0)
 	}
-	if testMode {
+	if *testMode {
 		desk.Setup()
 		defer desk.Cleanup()
 
