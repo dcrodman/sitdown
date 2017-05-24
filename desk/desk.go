@@ -27,7 +27,7 @@ func Setup() {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
-	var err Error
+	var err error
 	if serialFile, err = serial.Open(serialOptions); err != nil {
 		panic(err)
 	}
