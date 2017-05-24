@@ -1,37 +1,39 @@
 package main
 
 import (
+	"fmt"
+	"github.com/dcrodman/sitdown/desk"
 	"net/http"
 	"net/url"
-	"fmt"
-	"strconv"
 	"os"
-	"github.com/dcrodman/sitdown/desk"
-)
-
-var (
-	server = false
+	"strconv"
 )
 
 func main() {
-	desk.Setup()
-	defer desk.Cleanup()
-
 	for _, arg := range os.Args {
 		switch arg {
-		case "-s", "--server":
-			server = true
+		case "-c":
+			EnterCommandMode()
+			os.Exit(0)
+		case "-t", "--test":
+			InitializePins()
+			move("up", 2000)
+			move("down", 2000)
+			os.Exit(0)
 		}
 	}
 
-	if server {
-		http.HandleFunc("/move", HandleMove)
-		http.HandleFunc("/set", HandleSet)
-		http.ListenAndServe(":8080", nil)
-	} else {
-		move("up", 2000)
-		move("down", 2000)
-	}
+	InitializePins()
+
+	PubNubSubscribe()
+	http.HandleFunc("/move", HandleMove)
+	http.HandleFunc("/set", HandleSet)
+	http.ListenAndServe(":8080", nil)
+}
+
+func InitializePins() {
+	desk.Setup()
+	defer desk.Cleanup()
 }
 
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
