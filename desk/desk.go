@@ -2,12 +2,19 @@ package desk
 
 import (
 	"github.com/stianeikeland/go-rpio"
+	"github.com/jacobsa/go-serial/serial"
 	"sync"
+	"encoding/hex"
+	"fmt"
 )
 
 const (
 	pinButtonUp   rpio.Pin = rpio.Pin(16)
 	pinButtonDown rpio.Pin = rpio.Pin(12)
+	serialOptions serial.OpenOptions = serial.OpenOptions{
+		PortName: "/dev/serial0",
+		BaudRate: 9600,
+	}
 )
 
 var (
@@ -18,6 +25,7 @@ func Setup() {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
+	f, err := serial.Open(serialOptions)
 }
 
 func Cleanup() {
@@ -56,4 +64,17 @@ func StopLowering() {
 	pinButtonDown.Output()
 	pinButtonDown.PullUp()
 	pinButtonDown.High()
+}
+
+func Height() {
+	f, err := serial.Open(options)
+	buf := make([]byte, 32)
+	n, err := f.Read(buf)
+	if err != nil {
+		panic(err)
+	} else {
+		buf = buf[:n]
+		fmt.Println("Rx: ", hex.EncodeToString(buf))
+		return buf
+	}
 }

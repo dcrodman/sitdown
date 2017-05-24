@@ -28,6 +28,7 @@ func main() {
 	if server {
 		http.HandleFunc("/move", HandleMove)
 		http.HandleFunc("/set", HandleSet)
+		http.HandleFunc("/height", HandleHeight)
 		http.ListenAndServe(":8080", nil)
 	} else {
 		move("up", 2000)
@@ -69,6 +70,10 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	fmt.Printf("Received set command: %d\n", height)
+}
+
+func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
+	fmt.Fprintf(responseWriter, "Current height: %d\n", desk.Height())
 }
 
 func move(direction string, time int) {
