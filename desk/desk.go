@@ -4,6 +4,7 @@ import (
 	"github.com/stianeikeland/go-rpio"
 	"github.com/jacobsa/go-serial/serial"
 	"sync"
+	"math"
 	"fmt"
 	"io"
 	"time"
@@ -78,6 +79,29 @@ func LowerForDuration(duration int) {
 	raise()
 	sleep(duration)
 	stop()
+}
+
+func ChangeToHeight(height float32) {
+	lock()
+	defer unlock()
+	var acceptableRange float32 = 0.75
+        for math.Abs(float64(height - currentHeight)) < float64(acceptableRange) {
+		acceptableRange *= 0.75
+	}
+	destLow := height - acceptableRange 
+	destHigh := height + acceptableRange 
+	for {
+		if destLow <= currentHeight && currentHeight <= destHigh {
+			stop()
+			return
+		} else if currentHeight > height {
+			pinButtonUp.High()
+			pinButtonDown.Low()
+		} else if currentHeight < height {
+			pinButtonDown.High()
+			pinButtonUp.Low()
+		}
+	}
 }
 
 func raise() {
