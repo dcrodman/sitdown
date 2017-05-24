@@ -15,12 +15,6 @@ const (
 	publishKey     = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
 )
 
-type ChannelMessage struct {
-	data       interface{}
-	subMessage string
-	channel    string
-}
-
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
 	pubnub := messaging.NewPubnub(publishKey, subscribeKey, "", "", true, "", nil)
@@ -61,16 +55,16 @@ func PubNubSubscribe() {
 		for {
 			select {
 			case response := <-successChan:
-				var msg ChannelMessage
+				var msg []interface{}
 				if err := json.Unmarshal(response, &msg); err != nil {
 					fmt.Println("Could not process command: " + err.Error())
 				}
 
-				switch msg.data.(type) {
+				switch msg[0].(type) {
 				case []string:
-					fmt.Println(msg.data.([]string)[0])
+					fmt.Println(msg[0].([]string)[0])
 				default:
-					fmt.Printf("msg[0] is of type %v\n", msg.data)
+					fmt.Printf("msg[0] is of type %v\n", msg[0])
 				}
 
 				fmt.Printf("Received message on success channel: %v\n", msg)
