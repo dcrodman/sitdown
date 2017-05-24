@@ -29,12 +29,11 @@ func main() {
 	defer desk.Cleanup()
 
 	PubNubSubscribe()
+
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
+	fmt.Println("Starting HTTP server")
 	http.ListenAndServe(":8080", nil)
-}
-
-func InitializePins() {
 }
 
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {

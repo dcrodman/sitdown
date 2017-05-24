@@ -47,6 +47,7 @@ func PubNubSubscribe() {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
+	fmt.Println("Subscribing to " + sitdownChannel)
 	go pubnub.Subscribe(sitdownChannel, "", successChan, false, errorChan)
 
 	go func() {
