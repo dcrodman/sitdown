@@ -4,8 +4,12 @@ import (
 	"github.com/stianeikeland/go-rpio"
 	"github.com/jacobsa/go-serial/serial"
 	"sync"
+<<<<<<< HEAD
 	"fmt"
 	"io"
+=======
+	"time"
+>>>>>>> master
 )
 
 const (
@@ -37,11 +41,18 @@ func Setup() {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
+<<<<<<< HEAD
 	var err error
 	if serialFile, err = serial.Open(serialOptions); err != nil {
 		panic(err)
 	}
 	go heightMonitor()
+=======
+	pinButtonUp.Output()
+	pinButtonUp.PullUp()
+	pinButtonDown.Output()
+	pinButtonDown.PullUp()
+>>>>>>> master
 }
 
 func Cleanup() {
@@ -50,35 +61,40 @@ func Cleanup() {
 	pinButtonDown.PullOff()
 }
 
-func Lock() {
+func lock() {
 	moveMux.Lock()
 }
 
-func Unlock() {
+func unlock() {
 	moveMux.Unlock()
 }
 
-func Raise() {
-	pinButtonUp.Output()
-	pinButtonUp.PullUp()
+func RaiseForDuration(duration int) {
+	lock()
+	defer unlock()
+	raise()
+	sleep(duration)
+	stop()
+}
+
+func LowerForDuration(duration int) {
+	lock()
+	defer unlock()
+	raise()
+	sleep(duration)
+	stop()
+}
+
+func raise() {
 	pinButtonUp.Low()
 }
 
-func StopRaising() {
-	pinButtonUp.Output()
-	pinButtonUp.PullUp()
-	pinButtonUp.High()
-}
-
-func Lower() {
-	pinButtonDown.Output()
-	pinButtonDown.PullUp()
+func lower() {
 	pinButtonDown.Low()
 }
 
-func StopLowering() {
-	pinButtonDown.Output()
-	pinButtonDown.PullUp()
+func stop() {
+	pinButtonUp.High()
 	pinButtonDown.High()
 }
 
@@ -101,4 +117,8 @@ func heightMonitor() {
 			}
 		}
 	}
+}
+
+func sleep(ms int) {
+	time.Sleep(time.Duration(ms) * time.Millisecond)
 }

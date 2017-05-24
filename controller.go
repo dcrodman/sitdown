@@ -1,40 +1,40 @@
 package main
 
 import (
+	"fmt"
+	"github.com/dcrodman/sitdown/desk"
 	"net/http"
 	"net/url"
-	"fmt"
-	"strconv"
-	"time"
 	"os"
-	"github.com/dcrodman/sitdown/desk"
-)
-
-var (
-	server = false
+	"strconv"
 )
 
 func main() {
-	desk.Setup()
-	defer desk.Cleanup()
-
 	for _, arg := range os.Args {
 		switch arg {
-		case "-s", "--server":
-			server = true
+		case "-c":
+			EnterCommandMode()
+			os.Exit(0)
+		case "-t", "--test":
+			desk.Setup()
+			defer desk.Cleanup()
+
+			move("up", 2000)
+			move("down", 2500)
+			os.Exit(0)
 		}
 	}
 
-	if server {
-		http.HandleFunc("/move", HandleMove)
-		http.HandleFunc("/set", HandleSet)
-		http.HandleFunc("/height", HandleHeight)
-		http.ListenAndServe(":8080", nil)
-	} else {
-		move("up", 2000)
-		move("down", 2000)
-		desk.Height()
-	}
+	desk.Setup()
+	defer desk.Cleanup()
+
+	PubNubSubscribe()
+
+	http.HandleFunc("/move", HandleMove)
+	http.HandleFunc("/set", HandleSet)
+	http.HandleFunc("/height", HandleHeight)
+	fmt.Println("Starting HTTP server")
+	http.ListenAndServe(":8080", nil)
 }
 
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
@@ -78,20 +78,10 @@ func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
 }
 
 func move(direction string, time int) {
-	desk.Lock()
-	defer desk.Unlock()
 	switch direction {
 	case "up":
-		desk.Raise()
-		sleep(time)
-		desk.StopRaising()
+		desk.RaiseForDuration(time)
 	case "down":
-		desk.Lower()
-		sleep(time)
-		desk.StopLowering()
+		desk.LowerForDuration(time)
 	}
-}
-
-func sleep(ms int) {
-	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
