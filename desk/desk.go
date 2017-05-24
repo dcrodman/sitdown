@@ -83,6 +83,8 @@ func Height() byte {
 	n, err := serialFile.Read(buf)
 	if err != nil {
 		panic(err)
+	} else if n < 4 {
+		panic("Corrupt height response")
 	} else {
 		fmt.Printf("Rx: %d\n", buf[3])
 		return buf[3]
