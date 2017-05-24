@@ -80,12 +80,12 @@ func StopLowering() {
 }
 
 func Height() []byte {
-	buf := make([]byte, 32)
+	buf := make([]byte, 4)
 	n, err := serialFile.Read(buf)
 	if err != nil {
 		panic(err)
 	} else {
-		buf = buf[:n]
+		buf = buf[3]
 		fmt.Println("Rx: ", hex.EncodeToString(buf))
 		return buf
 	}
