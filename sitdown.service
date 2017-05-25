@@ -1,0 +1,13 @@
+[Unit]
+Description=Sitdown
+After=network.target
+
+[Service]
+User=pi
+Group=pi
+Restart=on-failure
+ExecStart=/usr/bin/sitdown
+
+[Install]
+WantedBy=multi-user.target
+Alias=mouselogger.service
