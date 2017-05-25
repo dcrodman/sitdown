@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/pubnub/go/messaging"
 	"net"
+	"time"
 )
 
 type Command string
@@ -65,35 +66,34 @@ func StartAnnouncing() {
 		var ipAddress string
 		for _, iface := range interfaces {
 			// Interface probably specific to the Raspberry Pi, but eh.
-			// if iface.Name == "en0" {
-			addrs, err := iface.Addrs()
-			if err != nil {
-				continue
-			}
+			if iface.Name == "wlan0" {
+				addrs, err := iface.Addrs()
+				if err != nil {
+					continue
+				}
 
-			for _, addr := range addrs {
-				switch t := addr.(type) {
-				case *net.IPAddr:
-					logger.Println("Addr IP: " + addr.String())
-				default:
-					logger.Printf("Found Addr of type %v\n", t)
+				for _, addr := range addrs {
+					switch t := addr.(type) {
+					case *net.IPNet:
+						logger.Println("Addr IP: " + addr.String())
+						ipAddress = addr.String()
+					default:
+						logger.Printf("Found Addr of type %#v\n", t)
+					}
 				}
 			}
-			// ipAddress = addrs[0].String()
-			// }
 		}
 
 		logger.Println("Announcing IP address: " + ipAddress)
+		PublishCommand(Announce, ipAddress)
 
-		PublishCommand(Announce, "456")
-
-		// for {
-		// 	timer := time.NewTimer(1 * time.Minute)
-		// 	select {
-		// 	case <-timer.C:
-		// 		pubnub.Publish(sitdownChannel, command, successChan, errorChan)
-		// 	}
-		// }
+		for {
+			timer := time.NewTimer(1 * time.Minute)
+			select {
+			case <-timer.C:
+				PublishCommand(Announce, ipAddress)
+			}
+		}
 	}()
 }
 
