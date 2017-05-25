@@ -42,7 +42,7 @@ func main() {
 		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
 		os.Exit(1)
 	}
-	controllerId = string(fileContents)
+	controllerId = strings.Trim(string(fileContents), "\n")
 	log.Println("Initializing Pi with ID: " + controllerId)
 
 	StartSubscriber(DeskCommandHandler)
