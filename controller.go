@@ -37,9 +37,9 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
-	fileContents, err := ioutil.ReadFile("id.conf")
+	fileContents, err := ioutil.ReadFile("/home/pi/id.conf")
 	if err != nil {
-		fmt.Println("Unable to locate id.conf (this file must contain the controller ID)")
+		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
 		os.Exit(1)
 	}
 	controllerId = string(fileContents)
