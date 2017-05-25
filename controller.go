@@ -36,6 +36,8 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
+	// TODO: Read controller ID and set it here
+
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
 

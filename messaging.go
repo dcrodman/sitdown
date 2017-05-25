@@ -72,11 +72,16 @@ func StartAnnouncing() {
 					continue
 				}
 
+			iploop:
 				for _, addr := range addrs {
 					switch t := addr.(type) {
 					case *net.IPNet:
 						logger.Println("Addr IP: " + addr.String())
-						ipAddress = addr.String()
+
+						if ip4 := addr.(*net.IPNet).IP.To4(); ip4 != nil {
+							ipAddress = ip4.String()
+							break iploop
+						}
 					default:
 						logger.Printf("Found Addr of type %#v\n", t)
 					}
