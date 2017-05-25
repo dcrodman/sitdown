@@ -76,8 +76,6 @@ func StartAnnouncing() {
 				for _, addr := range addrs {
 					switch t := addr.(type) {
 					case *net.IPNet:
-						logger.Println("Addr IP: " + addr.String())
-
 						if ip4 := addr.(*net.IPNet).IP.To4(); ip4 != nil {
 							ipAddress = ip4.String()
 							break iploop
