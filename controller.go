@@ -62,19 +62,22 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	height, err := strconv.ParseFloat(vals["height"][0], 32)
-	if err != nil || height < 28.1 || height > 47.5 {
-		fmt.Printf("Invalid height: %d\n", height)
-		return
-	}
-
-	fmt.Printf("Received set command: %.1f\n", height)
-	desk.ChangeToHeight(float32(height))
+	setHeight(vals["height"][0])
 	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
 }
 
 func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
+}
+
+func setHeight(height string) {
+	h, err := strconv.ParseFloat(height, 32)
+	if err != nil || h < 28.1 || h > 47.5 {
+		fmt.Printf("Invalid height: %d\n", h)
+		return
+	}
+	fmt.Printf("Received set command: %.1f\n", h)
+	desk.ChangeToHeight(float32(h))
 }
 
 func move(direction string, time int) {
