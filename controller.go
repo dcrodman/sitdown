@@ -154,6 +154,9 @@ func DeskCommandHandler(message Message) {
 			logger.Println("Missing height for set command (skipping)")
 		}
 		setHeight(splitCommand[1])
+	case Announce:
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
+		addKnownController(message.Id, message.IPAddr)
 	default:
 		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
 	}
