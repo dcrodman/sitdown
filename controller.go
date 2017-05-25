@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/dcrodman/sitdown/desk"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -23,7 +25,7 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
-	PubNubSubscribe()
+	SubscribeToChannel()
 
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
@@ -31,6 +33,22 @@ func main() {
 	fmt.Println("Starting HTTP server")
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		panic(err)
+	}
+}
+
+func EnterCommandMode() {
+	fmt.Println("Entering Command Mode")
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("Command: ")
+		command, _ := reader.ReadString('\n')
+		command = strings.Trim(command, "\n ")
+		if strings.ToLower(command) == "exit" {
+			break
+		}
+
+		PublishCommand(Command(command), commandClientId, "")
 	}
 }
 
@@ -73,10 +91,9 @@ func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
 func setHeight(height string) {
 	h, err := strconv.ParseFloat(height, 32)
 	if err != nil || h < 28.1 || h > 47.5 {
-		fmt.Printf("Invalid height: %d\n", h)
+		fmt.Printf("Invalid height: %f\n", h)
 		return
 	}
-	fmt.Printf("Received set command: %.1f\n", h)
 	desk.ChangeToHeight(float32(h))
 }
 
