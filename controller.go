@@ -84,17 +84,6 @@ loop:
 		command, _ := reader.ReadString('\n')
 		command = strings.Trim(command, "\n ")
 
-		splitCommand := strings.Split(command, " ")
-		if len(splitCommand) < 1 {
-			logger.Printf("Invalid command " + command)
-			continue
-		}
-
-		target := splitCommand[0]
-		if target == "all" {
-			target = ""
-		}
-
 		switch strings.ToLower(command) {
 		case "list":
 			for id, ip := range activeControllers {
@@ -105,8 +94,7 @@ loop:
 			break loop
 		}
 
-		newCommand := strings.Join(splitCommand[1:], " ")
-		PublishCommandToTarget(Command(newCommand), "", target)
+		PublishCommand(Command(command), "")
 	}
 	os.Exit(0)
 }
@@ -116,8 +104,8 @@ func CommandModeSubscribeHandler(message Message) {
 	splitCommand := strings.Split(string(message.Action), " ")
 	switch Command(splitCommand[0]) {
 	case Announce:
-		logger.Printf("Discovered controller %s (id: %s)\n", message.OriginIP, message.OriginId)
-		addKnownController(message.OriginId, message.OriginIP)
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
+		addKnownController(message.Id, message.IPAddr)
 	}
 }
 
@@ -163,7 +151,6 @@ func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
 // Command handler that should be running on the actual desk controllers.
 func DeskCommandHandler(message Message) {
 	splitCommand := strings.Split(string(message.Action), " ")
-
 	switch Command(splitCommand[0]) {
 	case Move:
 		switch len := len(splitCommand); len {
@@ -181,8 +168,8 @@ func DeskCommandHandler(message Message) {
 		}
 		setHeight(splitCommand[1])
 	case Announce:
-		logger.Printf("Discovered controller %s (id: %s)\n", message.OriginIP, message.OriginId)
-		addKnownController(message.OriginId, message.OriginIP)
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
+		addKnownController(message.Id, message.IPAddr)
 	default:
 		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
 	}
