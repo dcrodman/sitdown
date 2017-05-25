@@ -18,9 +18,9 @@ var (
 	// Global map of the IDs of active desk controllers to their IP addresses. This isn't
 	// explicitly threadsafe but is only ever modified by one thread.
 	activeControllers = make(map[string]string)
-
 	// ID for the current instance of sitdown.
 	controllerId string
+	// List of paired Pis to which to send commands.
 
 	logger = log.New(os.Stdin, "", log.Ltime)
 )
@@ -42,7 +42,7 @@ func main() {
 		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
 		os.Exit(1)
 	}
-	controllerId = strings.Trim(string(fileContents), "\n")
+	controllerId = strings.TrimRight(string(fileContents), "\n ")
 	log.Println("Initializing Pi with ID: " + controllerId)
 
 	StartSubscriber(DeskCommandHandler)
