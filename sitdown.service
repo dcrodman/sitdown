@@ -10,4 +10,4 @@ ExecStart=/usr/bin/sitdown
 
 [Install]
 WantedBy=multi-user.target
-Alias=mouselogger.service
+Alias=sitdown.service
