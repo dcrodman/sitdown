@@ -78,7 +78,7 @@ func RaiseForDuration(duration int) {
 func LowerForDuration(duration int) {
 	lock()
 	defer unlock()
-	raise()
+	lower()
 	sleep(duration)
 	stop()
 }
