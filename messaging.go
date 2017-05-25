@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/pubnub/go/messaging"
 	"net"
 )
@@ -47,9 +46,9 @@ func PublishCommand(command Command, id string, ip string) {
 
 	select {
 	case <-successChan:
-		fmt.Println("Publishing command: " + command)
+		logger.Println("Publishing command: " + command)
 	case err := <-errorChan:
-		fmt.Println("Error publishing command " + string(err))
+		logger.Println("Error publishing command " + string(err))
 	}
 }
 
@@ -59,7 +58,7 @@ func StartAnnouncing() {
 	go func() {
 		interfaces, err := net.Interfaces()
 		if err != nil {
-			fmt.Println("ERROR: Could not announce IP address " + err.Error())
+			logger.Println("ERROR: Could not announce IP address " + err.Error())
 			return
 		}
 
@@ -75,16 +74,16 @@ func StartAnnouncing() {
 			for _, addr := range addrs {
 				switch t := addr.(type) {
 				case *net.IPAddr:
-					fmt.Println("Addr IP: " + addr.String())
+					logger.Println("Addr IP: " + addr.String())
 				default:
-					fmt.Printf("Found Addr of type %v\n", t)
+					logger.Printf("Found Addr of type %v\n", t)
 				}
 			}
 			// ipAddress = addrs[0].String()
 			// }
 		}
 
-		fmt.Println("Announcing IP address: " + ipAddress)
+		logger.Println("Announcing IP address: " + ipAddress)
 
 		PublishCommand(Announce, "123", "456")
 
@@ -104,7 +103,7 @@ func StartSubscriber(handlerFn func(Message)) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
-	fmt.Println("Subscribing to " + sitdownChannel)
+	logger.Println("Subscribing to " + sitdownChannel)
 	go pubnub.Subscribe(sitdownChannel, "", successChan, false, errorChan)
 
 	go func() {
@@ -113,10 +112,10 @@ func StartSubscriber(handlerFn func(Message)) {
 			case response := <-successChan:
 				var msg []interface{}
 				if err := json.Unmarshal(response, &msg); err != nil {
-					fmt.Println("Could not process command: " + err.Error())
+					logger.Println("Could not process command: " + err.Error())
 				}
 
-				fmt.Printf("Received message: %v\n", msg)
+				logger.Printf("Received message: %v\n", msg)
 
 				switch msg[0].(type) {
 				case []interface{}:
@@ -124,13 +123,13 @@ func StartSubscriber(handlerFn func(Message)) {
 					var message Message
 					json.Unmarshal([]byte(encoded), &message)
 
-					fmt.Printf("Received command: %v\n", message)
+					logger.Printf("Received command: %v\n", message)
 					handlerFn(message)
 				default:
 					// Throw it out; we don't care.
 				}
 			case err := <-errorChan:
-				fmt.Println("Received message on error channel: " + string(err))
+				logger.Println("Received message on error channel: " + string(err))
 			}
 		}
 	}()

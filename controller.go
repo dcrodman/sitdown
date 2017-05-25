@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dcrodman/sitdown/desk"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,9 +13,13 @@ import (
 	"strings"
 )
 
-// Global map of the IDs of active desk controllers to their IP addresses. This isn't
-// explicitly threadsafe but is only ever modified by one thread.
-var activeControllers = make(map[string]string)
+var (
+	// Global map of the IDs of active desk controllers to their IP addresses. This isn't
+	// explicitly threadsafe but is only ever modified by one thread.
+	activeControllers = make(map[string]string)
+
+	logger = log.New(os.Stdin, "", log.Ltime)
+)
 
 func main() {
 	commandMode := flag.Bool("c", false, "Start the server in command mode")
@@ -34,7 +39,7 @@ func main() {
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
 	http.HandleFunc("/height", HandleHeight)
-	fmt.Println("Starting HTTP server")
+	logger.Println("Starting HTTP server")
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		panic(err)
 	}
@@ -46,6 +51,14 @@ func main() {
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
 	reader := bufio.NewReader(os.Stdin)
+	logFile, err := os.Create("controller.log")
+	if err != nil {
+		fmt.Printf("Could not open controller.log")
+		os.Exit(0)
+	}
+	// Reassign the logger from stdout so that we don't interfere with the prompt.
+	logger = log.New(logFile, "", log.Ltime)
+
 	StartSubscriber(CommandModeSubscribeHandler)
 
 loop:
@@ -57,7 +70,7 @@ loop:
 		switch strings.ToLower(command) {
 		case "list":
 			for id, ip := range activeControllers {
-				fmt.Printf("Controller @ %s (id: %s)]n", ip, id)
+				logger.Printf("Controller @ %s (id: %s)]\n", ip, id)
 			}
 		case "exit":
 			break loop
@@ -73,7 +86,7 @@ func CommandModeSubscribeHandler(message Message) {
 	splitCommand := strings.Split(string(message.Action), " ")
 	switch Command(splitCommand[0]) {
 	case Announce:
-		fmt.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
 		addKnownController(message.Id, message.IPAddr)
 	}
 }
@@ -82,21 +95,21 @@ func CommandModeSubscribeHandler(message Message) {
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 	vals, err := url.ParseQuery(request.URL.RawQuery)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 		return
 	}
 	direction := vals["direction"][0]
 	if direction != "down" && direction != "up" {
-		fmt.Printf("Invalid direction: %s\n", direction)
+		logger.Printf("Invalid direction: %s\n", direction)
 		return
 	}
 	duration, err := strconv.Atoi(vals["time"][0])
 	if err != nil || duration < 0 || duration > 10000 {
-		fmt.Printf("Invalid time: %d\n", duration)
+		logger.Printf("Invalid time: %d\n", duration)
 		return
 	}
 
-	fmt.Printf("Received move command: %s %d\n", direction, duration)
+	logger.Printf("Received move command: %s %d\n", direction, duration)
 	move(direction, duration)
 	fmt.Fprintf(responseWriter, "Moved to %.1f", desk.Height())
 }
@@ -105,7 +118,7 @@ func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	vals, err := url.ParseQuery(request.URL.RawQuery)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 		return
 	}
 	setHeight(vals["height"][0])
@@ -124,7 +137,7 @@ func DeskCommandHandler(message Message) {
 	case Move:
 		switch len := len(splitCommand); len {
 		case 1:
-			fmt.Println("Missing direction from move command (skipping)")
+			logger.Println("Missing direction from move command (skipping)")
 		case 2:
 			move(splitCommand[1], 1000)
 		default:
@@ -133,18 +146,18 @@ func DeskCommandHandler(message Message) {
 		}
 	case SetHeight:
 		if len := len(splitCommand); len <= 1 {
-			fmt.Println("Missing height for set command (skipping)")
+			logger.Println("Missing height for set command (skipping)")
 		}
 		setHeight(splitCommand[1])
 	default:
-		fmt.Printf("Unrecognized command %v; skipping\n", message.Action)
+		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
 	}
 }
 
 func setHeight(height string) {
 	h, err := strconv.ParseFloat(height, 32)
 	if err != nil || h < 28.1 || h > 47.5 {
-		fmt.Printf("Invalid height: %f\n", h)
+		logger.Printf("Invalid height: %f\n", h)
 		return
 	}
 	desk.ChangeToHeight(float32(h))
