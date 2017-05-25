@@ -10,9 +10,10 @@ import (
 type Command string
 
 type Message struct {
-	Action Command
-	Id     string
-	IPAddr string
+	Action   Command
+	OriginId string
+	OriginIP string
+	TargetId string
 }
 
 const (
@@ -31,15 +32,21 @@ const (
 
 var pubnub = messaging.NewPubnub(publishKey, subscribeKey, "", "", true, "", nil)
 
-// Write a message to our channel on PubNub.
-func PublishCommand(command Command, ip string) {
+// Write a message to our channel on PubNub to all active controllers.
+func PublishCommand(command Command, originIP string) {
+	PublishCommandToTarget(command, originIP, "")
+}
+
+// Write a message to our channel on PubNub to a specific controller.
+func PublishCommandToTarget(command Command, originIP string, target string) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
 	cmd := &Message{
-		Action: command,
-		Id:     controllerId,
-		IPAddr: ip,
+		Action:   command,
+		OriginId: controllerId,
+		OriginIP: originIP,
+		TargetId: target,
 	}
 
 	jsonCmd, _ := json.Marshal(cmd)
@@ -127,7 +134,8 @@ func StartSubscriber(handlerFn func(Message)) {
 					json.Unmarshal([]byte(encoded), &message)
 
 					// Throw out messages sent from the same device.
-					if message.Id != controllerId {
+					if message.OriginId != controllerId &&
+						(message.TargetId == "" || message.TargetId == controllerId) {
 						logger.Printf("Received command: %#v\n", message)
 						handlerFn(message)
 					}
