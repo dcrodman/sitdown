@@ -25,19 +25,19 @@ const (
 	subscribeKey = "sub-c-04ca627a-4008-11e7-86e2-02ee2ddab7fe"
 	publishKey   = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
 
-	commandClientId = "command-client"
+	CommandClientId = "command-client"
 )
 
 var pubnub = messaging.NewPubnub(publishKey, subscribeKey, "", "", true, "", nil)
 
 // Write a message to our channel on PubNub.
-func PublishCommand(command Command, id string, ip string) {
+func PublishCommand(command Command, ip string) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
 	cmd := &Message{
 		Action: command,
-		Id:     id,
+		Id:     controllerId,
 		IPAddr: ip,
 	}
 
@@ -85,7 +85,7 @@ func StartAnnouncing() {
 
 		logger.Println("Announcing IP address: " + ipAddress)
 
-		PublishCommand(Announce, "123", "456")
+		PublishCommand(Announce, "456")
 
 		// for {
 		// 	timer := time.NewTimer(1 * time.Minute)
@@ -115,18 +115,20 @@ func StartSubscriber(handlerFn func(Message)) {
 					logger.Println("Could not process command: " + err.Error())
 				}
 
-				logger.Printf("Received message: %v\n", msg)
-
 				switch msg[0].(type) {
 				case []interface{}:
 					encoded := msg[0].([]interface{})[0].(string)
 					var message Message
 					json.Unmarshal([]byte(encoded), &message)
 
-					logger.Printf("Received command: %v\n", message)
-					handlerFn(message)
+					// Throw out messages sent from the same device.
+					if message.Id != controllerId {
+						logger.Printf("Received command: %#v\n", message)
+						handlerFn(message)
+					}
 				default:
-					// Throw it out; we don't care.
+					logger.Printf("Ignoring message: %v\n", msg)
+
 				}
 			case err := <-errorChan:
 				logger.Println("Received message on error channel: " + string(err))

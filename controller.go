@@ -18,6 +18,9 @@ var (
 	// explicitly threadsafe but is only ever modified by one thread.
 	activeControllers = make(map[string]string)
 
+	// ID for the current instance of sitdown.
+	controllerId string
+
 	logger = log.New(os.Stdin, "", log.Ltime)
 )
 
@@ -50,7 +53,6 @@ func main() {
 // the same network since all of the commands are passed through PubNub.
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
-	reader := bufio.NewReader(os.Stdin)
 	logFile, err := os.Create("controller.log")
 	if err != nil {
 		fmt.Printf("Could not open controller.log")
@@ -58,7 +60,9 @@ func EnterCommandMode() {
 	}
 	// Reassign the logger from stdout so that we don't interfere with the prompt.
 	logger = log.New(logFile, "", log.Ltime)
+	controllerId = CommandClientId
 
+	reader := bufio.NewReader(os.Stdin)
 	StartSubscriber(CommandModeSubscribeHandler)
 
 loop:
@@ -72,11 +76,12 @@ loop:
 			for id, ip := range activeControllers {
 				logger.Printf("Controller @ %s (id: %s)]\n", ip, id)
 			}
+			continue
 		case "exit":
 			break loop
 		}
 
-		PublishCommand(Command(command), commandClientId, "")
+		PublishCommand(Command(command), "")
 	}
 	os.Exit(0)
 }
