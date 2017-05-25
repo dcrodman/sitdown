@@ -69,6 +69,7 @@ func StartAnnouncing() {
 			if iface.Name == "wlan0" {
 				addrs, err := iface.Addrs()
 				if err != nil {
+					logger.Printf("Could not retrieve Addrs " + err.Error())
 					continue
 				}
 
