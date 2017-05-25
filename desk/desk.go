@@ -128,7 +128,11 @@ func heightMonitor() {
 		data := make([]byte, 4)
 		n, err := serialFile.Read(data)
 		if n < 4 || err != nil {
-			panic(err)
+			if err == io.EOF {
+				sleep(50)
+			} else {
+				panic(err)
+			}
 		} else {
 			newHeight := baseHeight + float32(int(data[3]) - minHeight) / 10
 			if newHeight != currentHeight {
