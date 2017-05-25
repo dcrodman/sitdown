@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pubnub/go/messaging"
-	// "reflect"
-	"strconv"
-	"strings"
+	"net"
 )
 
 type Command string
@@ -18,18 +16,22 @@ type Message struct {
 }
 
 const (
+	// Possible commands that can be sent to (or by) the desk controllers.
 	Move      Command = "move"
 	SetHeight Command = "set"
+	Announce  Command = "announce"
 
 	sitdownChannel = "sitdown"
-	subscribeKey   = "sub-c-04ca627a-4008-11e7-86e2-02ee2ddab7fe"
-	publishKey     = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
+	// Demo keys that we don't really care about.
+	subscribeKey = "sub-c-04ca627a-4008-11e7-86e2-02ee2ddab7fe"
+	publishKey   = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
 
 	commandClientId = "command-client"
 )
 
 var pubnub = messaging.NewPubnub(publishKey, subscribeKey, "", "", true, "", nil)
 
+// Write a message to our channel on PubNub.
 func PublishCommand(command Command, id string, ip string) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
@@ -51,9 +53,40 @@ func PublishCommand(command Command, id string, ip string) {
 	}
 }
 
+// Kick off a goroutine that will write a message to the channel with some basic
+// info about the device for discovery by other controllers and the command client.
 func StartAnnouncing() {
 	go func() {
-		// pubnub.Publish(sitdownChannel, command, successChan, errorChan)
+		interfaces, err := net.Interfaces()
+		if err != nil {
+			fmt.Println("ERROR: Could not announce IP address " + err.Error())
+			return
+		}
+
+		var ipAddress string
+		for _, iface := range interfaces {
+			// Interface probably specific to the Raspberry Pi, but eh.
+			// if iface.Name == "en0" {
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				switch t := addr.(type) {
+				case *net.IPAddr:
+					fmt.Println("Addr IP: " + addr.String())
+				default:
+					fmt.Printf("Found Addr of type %v\n", t)
+				}
+			}
+			// ipAddress = addrs[0].String()
+			// }
+		}
+
+		fmt.Println("Announcing IP address: " + ipAddress)
+
+		PublishCommand(Announce, "123", "456")
 
 		// for {
 		// 	timer := time.NewTimer(1 * time.Minute)
@@ -65,7 +98,9 @@ func StartAnnouncing() {
 	}()
 }
 
-func SubscribeToChannel() {
+// Subscribe to the PubNub channel and decode messages as they come in.
+// Valid messages will be passed to handlerFn with the full Message struct.
+func StartSubscriber(handlerFn func(Message)) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
@@ -90,35 +125,13 @@ func SubscribeToChannel() {
 					json.Unmarshal([]byte(encoded), &message)
 
 					fmt.Printf("Received command: %v\n", message)
-					handleCommand(message)
+					handlerFn(message)
 				default:
+					// Throw it out; we don't care.
 				}
 			case err := <-errorChan:
 				fmt.Println("Received message on error channel: " + string(err))
 			}
 		}
 	}()
-}
-
-func handleCommand(message Message) {
-	splitCommand := strings.Split(string(message.Action), " ")
-	switch Command(splitCommand[0]) {
-	case Move:
-		switch len := len(splitCommand); len {
-		case 1:
-			fmt.Println("Missing direction from move command (skipping)")
-		case 2:
-			move(splitCommand[1], 1000)
-		default:
-			duration, _ := strconv.ParseInt(splitCommand[2], 10, 32)
-			move(splitCommand[1], int(duration))
-		}
-	case SetHeight:
-		if len := len(splitCommand); len <= 1 {
-			fmt.Println("Missing height for set command (skipping)")
-		}
-		setHeight(splitCommand[1])
-	default:
-		fmt.Printf("Unrecognized command %v; skipping\n", message.Action)
-	}
 }

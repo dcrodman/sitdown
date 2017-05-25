@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+// Global map of the IDs of active desk controllers to their IP addresses. This isn't
+// explicitly threadsafe but is only ever modified by one thread.
+var activeControllers = make(map[string]string)
+
 func main() {
 	commandMode := flag.Bool("c", false, "Start the server in command mode")
 	port := flag.String("p", "8080", "Listen on the specified port")
@@ -19,13 +23,13 @@ func main() {
 
 	if *commandMode {
 		EnterCommandMode()
-		os.Exit(0)
 	}
 
 	desk.Setup()
 	defer desk.Cleanup()
 
-	SubscribeToChannel()
+	StartSubscriber(DeskCommandHandler)
+	StartAnnouncing()
 
 	http.HandleFunc("/move", HandleMove)
 	http.HandleFunc("/set", HandleSet)
@@ -36,22 +40,45 @@ func main() {
 	}
 }
 
+// Command client mode for communicating with the desk controllers remotely. This is
+// invoked with the -c command line argument from any machine. Does not have to be on
+// the same network since all of the commands are passed through PubNub.
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
 	reader := bufio.NewReader(os.Stdin)
+	StartSubscriber(CommandModeSubscribeHandler)
 
+loop:
 	for {
 		fmt.Print("Command: ")
 		command, _ := reader.ReadString('\n')
 		command = strings.Trim(command, "\n ")
-		if strings.ToLower(command) == "exit" {
-			break
+
+		switch strings.ToLower(command) {
+		case "list":
+			for id, ip := range activeControllers {
+				fmt.Printf("Controller @ %s (id: %s)]n", ip, id)
+			}
+		case "exit":
+			break loop
 		}
 
 		PublishCommand(Command(command), commandClientId, "")
 	}
+	os.Exit(0)
 }
 
+// Message handler specifically for command mode.
+func CommandModeSubscribeHandler(message Message) {
+	splitCommand := strings.Split(string(message.Action), " ")
+	switch Command(splitCommand[0]) {
+	case Announce:
+		fmt.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
+		addKnownController(message.Id, message.IPAddr)
+	}
+}
+
+// Handler method for HTTP requests sent to /move.
 func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 	vals, err := url.ParseQuery(request.URL.RawQuery)
 	if err != nil {
@@ -74,6 +101,7 @@ func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(responseWriter, "Moved to %.1f", desk.Height())
 }
 
+// Handler method for HTTP requests sent to /set.
 func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	vals, err := url.ParseQuery(request.URL.RawQuery)
 	if err != nil {
@@ -84,8 +112,33 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
 }
 
+// Handler method for HTTP requests sent to /height.
 func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
+}
+
+// Command handler that should be running on the actual desk controllers.
+func DeskCommandHandler(message Message) {
+	splitCommand := strings.Split(string(message.Action), " ")
+	switch Command(splitCommand[0]) {
+	case Move:
+		switch len := len(splitCommand); len {
+		case 1:
+			fmt.Println("Missing direction from move command (skipping)")
+		case 2:
+			move(splitCommand[1], 1000)
+		default:
+			duration, _ := strconv.ParseInt(splitCommand[2], 10, 32)
+			move(splitCommand[1], int(duration))
+		}
+	case SetHeight:
+		if len := len(splitCommand); len <= 1 {
+			fmt.Println("Missing height for set command (skipping)")
+		}
+		setHeight(splitCommand[1])
+	default:
+		fmt.Printf("Unrecognized command %v; skipping\n", message.Action)
+	}
 }
 
 func setHeight(height string) {
@@ -104,4 +157,8 @@ func move(direction string, time int) {
 	case "down":
 		desk.LowerForDuration(time)
 	}
+}
+
+func addKnownController(id, ipAddr string) {
+	activeControllers[id] = ipAddr
 }
