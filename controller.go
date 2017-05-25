@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dcrodman/sitdown/desk"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -36,7 +37,13 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
-	// TODO: Read controller ID and set it here
+	fileContents, err := ioutil.ReadFile("id.conf")
+	if err != nil {
+		fmt.Println("Unable to locate id.conf (this file must contain the controller ID)")
+		os.Exit(1)
+	}
+	controllerId = string(fileContents)
+	log.Println("Initializing Pi with ID: " + controllerId)
 
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
@@ -53,6 +60,10 @@ func main() {
 // Command client mode for communicating with the desk controllers remotely. This is
 // invoked with the -c command line argument from any machine. Does not have to be on
 // the same network since all of the commands are passed through PubNub.
+//
+// list: Show all controllers that the command client is aware of
+// exit: Kill the prompt
+// Anything else will be published directly to the controllers
 func EnterCommandMode() {
 	fmt.Println("Entering Command Mode")
 	logFile, err := os.Create("controller.log")
