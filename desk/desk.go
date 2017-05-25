@@ -47,8 +47,10 @@ func Setup() {
 	go heightMonitor()
 	pinButtonUp.Output()
 	pinButtonUp.PullUp()
+	pinButtonUp.High()
 	pinButtonDown.Output()
 	pinButtonDown.PullUp()
+	pinButtonDown.High()
 }
 
 func Cleanup() {
