@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 )
@@ -39,7 +40,8 @@ func main() {
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
-	ReadConfig()
+	readConfig()
+	registerSignalHandlers()
 
 	InitializePubNub()
 	defer CleanupPubNub()
@@ -63,7 +65,7 @@ func main() {
 	}
 }
 
-func ReadConfig() {
+func readConfig() {
 	fileContents, err := ioutil.ReadFile(configFilename)
 	if err != nil {
 		fileContents, err = ioutil.ReadFile("/home/pi/" + configFilename)
@@ -75,6 +77,19 @@ func ReadConfig() {
 
 	json.Unmarshal([]byte(fileContents), &config)
 	logger.Printf("Initializing Pi with config: %#v\n", config)
+}
+
+// Attempt to cover all of our bases for cleanup.
+func registerSignalHandlers() {
+	killChan := make(chan os.Signal)
+	signal.Notify(killChan, os.Interrupt, os.Kill)
+
+	go func() {
+		<-killChan
+		CleanupPubNub()
+		desk.Cleanup()
+		logger.Println("Cleaning up from signal handler")
+	}()
 }
 
 // Command client mode for communicating with the desk controllers remotely. This is
