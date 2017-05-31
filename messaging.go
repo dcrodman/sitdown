@@ -23,7 +23,7 @@ const (
 
 	CommandClientId = "command-client"
 
-	sitdownChannel = "sitdown-hackathon"
+	sitdownChannel = "controller"
 )
 
 var pubnub *messaging.Pubnub

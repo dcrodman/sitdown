@@ -49,7 +49,7 @@ func main() {
 
 	fileContents, err := ioutil.ReadFile("/home/pi/controller.conf")
 	if err != nil {
-		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
+		fmt.Println("Unable to locate /home/pi/controller.conf")
 		os.Exit(1)
 	}
 	json.Unmarshal([]byte(fileContents), &config)
