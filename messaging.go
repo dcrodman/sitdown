@@ -23,13 +23,13 @@ const (
 
 	CommandClientId = "command-client"
 
-	sitdownChannel = "sitdown"
+	sitdownChannel = "sitdown-hackathon"
 )
 
 var pubnub *messaging.Pubnub
 
 func InitializePubNub() {
-	pubnub = messaging.NewPubnub(config.SubKey, config.PubKey, "", "", true, "", nil)
+	pubnub = messaging.NewPubnub(config.PubKey, config.SubKey, "", "", true, "", nil)
 }
 
 func CleanupPubNub() {
