@@ -89,6 +89,7 @@ func registerSignalHandlers() {
 		CleanupPubNub()
 		desk.Cleanup()
 		logger.Println("Cleaning up from signal handler")
+		os.Exit(0)
 	}()
 }
 
