@@ -21,15 +21,31 @@ const (
 	SetHeight Command = "set"
 	Announce  Command = "announce"
 
-	sitdownChannel = "sitdown"
-	// Demo keys that we don't really care about.
-	subscribeKey = "sub-c-04ca627a-4008-11e7-86e2-02ee2ddab7fe"
-	publishKey   = "pub-c-b92ac3f8-47e1-4965-a9d0-1f6b2e8b7847"
-
 	CommandClientId = "command-client"
+
+	sitdownChannel = "sitdown"
 )
 
-var pubnub = messaging.NewPubnub(publishKey, subscribeKey, "", "", true, "", nil)
+var pubnub *messaging.Pubnub
+
+func InitializePubNub() {
+	pubnub = messaging.NewPubnub(config.SubKey, config.PubKey, "", "", true, "", nil)
+}
+
+func CleanupPubNub() {
+	successChan := make(chan []byte)
+	errorChan := make(chan []byte)
+
+	pubnub.Unsubscribe(sitdownChannel, successChan, errorChan)
+	select {
+	case <-successChan:
+		logger.Println("Unsubscribed from channel")
+	case err := <-errorChan:
+		logger.Println("Failed to unsubscribe from channel: " + string(err))
+	case <-messaging.Timeout():
+		logger.Println("Timeout while unsubcribing from channel")
+	}
+}
 
 // Write a message to our channel on PubNub.
 func PublishCommand(command Command, ip string) {

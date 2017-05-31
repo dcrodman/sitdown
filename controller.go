@@ -37,6 +37,9 @@ func main() {
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
+	InitializePubNub()
+	defer CleanupPubNub()
+
 	if *commandMode {
 		EnterCommandMode()
 	}
@@ -44,14 +47,13 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
-	fileContents, err := ioutil.ReadFile("/home/pi/id.conf")
+	fileContents, err := ioutil.ReadFile("/home/pi/controller.conf")
 	if err != nil {
 		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
 		os.Exit(1)
 	}
 	json.Unmarshal([]byte(fileContents), &config)
-	log.Printf("Config: %#v", config)
-	log.Println("Initializing Pi with ID: " + config.ControllerID)
+	logger.Println("Initializing Pi with ID: " + config.ControllerID)
 
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
