@@ -53,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 	json.Unmarshal([]byte(fileContents), &config)
-	logger.Println("Initializing Pi with ID: " + config.ControllerID)
+	logger.Printf("Initializing Pi with config: %#v\n", config)
 
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
