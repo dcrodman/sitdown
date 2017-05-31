@@ -38,7 +38,7 @@ func PublishCommand(command Command, ip string) {
 
 	cmd := &Message{
 		Action: command,
-		Id:     controllerId,
+		Id:     config.ControllerID,
 		IPAddr: ip,
 	}
 
@@ -126,7 +126,7 @@ func StartSubscriber(handlerFn func(Message)) {
 					json.Unmarshal([]byte(encoded), &message)
 
 					// Throw out messages sent from the same device.
-					if message.Id != controllerId {
+					if message.Id != config.ControllerID {
 						logger.Printf("Received command: %#v\n", message)
 						handlerFn(message)
 					}

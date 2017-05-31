@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/dcrodman/sitdown/desk"
@@ -14,12 +15,18 @@ import (
 	"strings"
 )
 
+type configuration struct {
+	ControllerID string
+	PubKey       string
+	SubKey       string
+}
+
 var (
 	// Global map of the IDs of active desk controllers to their IP addresses. This isn't
 	// explicitly threadsafe but is only ever modified by one thread.
 	activeControllers = make(map[string]string)
 	// ID for the current instance of sitdown.
-	controllerId string
+	config configuration
 	// List of paired Pis to which to send commands.
 
 	logger = log.New(os.Stdin, "", log.Ltime)
@@ -42,8 +49,9 @@ func main() {
 		fmt.Println("Unable to locate /home/pi/id.conf (this file must contain the controller ID)")
 		os.Exit(1)
 	}
-	controllerId = strings.TrimRight(string(fileContents), "\n ")
-	log.Println("Initializing Pi with ID: " + controllerId)
+	json.Unmarshal([]byte(fileContents), &config)
+	log.Printf("Config: %#v", config)
+	log.Println("Initializing Pi with ID: " + config.ControllerID)
 
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
@@ -73,7 +81,7 @@ func EnterCommandMode() {
 	}
 	// Reassign the logger from stdout so that we don't interfere with the prompt.
 	logger = log.New(logFile, "", log.Ltime)
-	controllerId = CommandClientId
+	config.ControllerID = CommandClientId
 
 	reader := bufio.NewReader(os.Stdin)
 	StartSubscriber(CommandModeSubscribeHandler)
