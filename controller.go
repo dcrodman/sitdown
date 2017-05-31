@@ -86,9 +86,9 @@ func registerSignalHandlers() {
 
 	go func() {
 		<-killChan
-		CleanupPubNub()
-		desk.Cleanup()
 		logger.Println("Cleaning up from signal handler")
+		desk.Cleanup()
+		CleanupPubNub()
 		os.Exit(0)
 	}()
 }

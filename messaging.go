@@ -36,7 +36,7 @@ func CleanupPubNub() {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
-	pubnub.Unsubscribe(sitdownChannel, successChan, errorChan)
+	go pubnub.Unsubscribe(sitdownChannel, successChan, errorChan)
 	select {
 	case <-successChan:
 		logger.Println("Unsubscribed from channel")
