@@ -21,6 +21,8 @@ type configuration struct {
 	SubKey       string
 }
 
+const configFilename = "controller.conf"
+
 var (
 	// Global map of the IDs of active desk controllers to their IP addresses. This isn't
 	// explicitly threadsafe but is only ever modified by one thread.
@@ -37,6 +39,8 @@ func main() {
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
+	ReadConfig()
+
 	InitializePubNub()
 	defer CleanupPubNub()
 
@@ -46,14 +50,6 @@ func main() {
 
 	desk.Setup()
 	defer desk.Cleanup()
-
-	fileContents, err := ioutil.ReadFile("/home/pi/controller.conf")
-	if err != nil {
-		fmt.Println("Unable to locate /home/pi/controller.conf")
-		os.Exit(1)
-	}
-	json.Unmarshal([]byte(fileContents), &config)
-	logger.Printf("Initializing Pi with config: %#v\n", config)
 
 	StartSubscriber(DeskCommandHandler)
 	StartAnnouncing()
@@ -65,6 +61,20 @@ func main() {
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		panic(err)
 	}
+}
+
+func ReadConfig() {
+	fileContents, err := ioutil.ReadFile(configFilename)
+	if err != nil {
+		fileContents, err = ioutil.ReadFile("/home/pi/" + configFilename)
+		if err != nil {
+			fmt.Printf("Unable to locate %s in local dir or /home/pi\n", configFilename)
+			os.Exit(1)
+		}
+	}
+
+	json.Unmarshal([]byte(fileContents), &config)
+	logger.Printf("Initializing Pi with config: %#v\n", config)
 }
 
 // Command client mode for communicating with the desk controllers remotely. This is
