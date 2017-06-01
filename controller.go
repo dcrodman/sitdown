@@ -200,18 +200,19 @@ loop:
 			break loop
 		case <-timer.C:
 			thisHour := time.Now().Hour() % 12
-			if thisHour == 0 {
-				thisHour = 12
-			}
+			// if thisHour == 0 {
+			// 	thisHour = 12
+			// }
 
-			if thisHour != lastTolled {
-				log.Printf("Belltoll - %d times", thisHour)
-				for i := 0; i < thisHour; i++ {
-					move("up", 1000)
-					move("down", 1050)
-				}
-				lastTolled = thisHour
+			// if thisHour != lastTolled {
+			log.Printf("Belltoll - %d times", thisHour)
+			for i := 0; i < thisHour; i++ {
+				move("up", 600)
+				time.Sleep(time.Duration(600) * time.Millisecond)
+				move("down", 650)
 			}
+			lastTolled = thisHour
+			// }
 		}
 	}
 }
