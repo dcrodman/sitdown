@@ -1,42 +1,44 @@
 package desk
 
 import (
-	"github.com/stianeikeland/go-rpio"
 	"github.com/jacobsa/go-serial/serial"
-	"sync"
-	"math"
-	"fmt"
+	"github.com/stianeikeland/go-rpio"
 	"io"
+	"log"
+	"math"
+	"sync"
 	"time"
 )
 
 const (
 	pinButtonUp   rpio.Pin = rpio.Pin(16)
 	pinButtonDown rpio.Pin = rpio.Pin(12)
-	maxHeight     int = 219
-	minHeight     int = 25
-	baseHeight    float32 = 28.1
+	maxHeight     int      = 219
+	minHeight     int      = 25
+	baseHeight    float32  = 28.1
 )
 
 var (
-	moveMux = &sync.Mutex{}
-	serialFile io.ReadWriteCloser 
+	moveMux       = &sync.Mutex{}
+	serialFile    io.ReadWriteCloser
 	serialOptions = serial.OpenOptions{
-		PortName: "/dev/serial0",
-		BaudRate: 9600,
-		DataBits: 8,
-		StopBits: 1,
-		MinimumReadSize: 0,
-		InterCharacterTimeout: 100,
-		ParityMode: serial.PARITY_NONE,
-		Rs485Enable: false,
+		PortName:               "/dev/serial0",
+		BaudRate:               9600,
+		DataBits:               8,
+		StopBits:               1,
+		MinimumReadSize:        0,
+		InterCharacterTimeout:  100,
+		ParityMode:             serial.PARITY_NONE,
+		Rs485Enable:            false,
 		Rs485RtsHighDuringSend: false,
-		Rs485RtsHighAfterSend: false,
+		Rs485RtsHighAfterSend:  false,
 	}
-	currentHeight float32 
+	currentHeight float32
+
+	logger *log.Logger
 )
 
-func Setup() {
+func Setup(log *log.Logger) {
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
@@ -44,7 +46,10 @@ func Setup() {
 	if serialFile, err = serial.Open(serialOptions); err != nil {
 		panic(err)
 	}
+
+	logger = log
 	go heightMonitor()
+
 	pinButtonUp.Output()
 	pinButtonUp.PullUp()
 	pinButtonUp.High()
@@ -87,11 +92,11 @@ func ChangeToHeight(height float32) {
 	lock()
 	defer unlock()
 	var acceptableRange float32 = 0.75
-        for math.Abs(float64(height - currentHeight)) < float64(acceptableRange) {
+	for math.Abs(float64(height-currentHeight)) < float64(acceptableRange) {
 		acceptableRange *= 0.75
 	}
-	destLow := height - acceptableRange 
-	destHigh := height + acceptableRange 
+	destLow := height - acceptableRange
+	destHigh := height + acceptableRange
 	for {
 		if destLow <= currentHeight && currentHeight <= destHigh {
 			stop()
@@ -132,9 +137,9 @@ func heightMonitor() {
 		} else if err != nil {
 			panic(err)
 		} else if data[1] == 1 {
-			newHeight := baseHeight + float32(int(data[3]) - minHeight) / 10
+			newHeight := baseHeight + float32(int(data[3])-minHeight)/10
 			if newHeight != currentHeight {
-				fmt.Printf("Height changed to %.1f from %.1f\n", newHeight, currentHeight)
+				logger.Printf("Height changed to %.1f from %.1f\n", newHeight, currentHeight)
 				currentHeight = newHeight
 			}
 		}

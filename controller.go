@@ -48,7 +48,7 @@ func main() {
 		EnterCommandMode()
 	}
 
-	desk.Setup()
+	desk.Setup(logger)
 	defer desk.Cleanup()
 
 	StartSubscriber(DeskCommandSubscriberHandler)
