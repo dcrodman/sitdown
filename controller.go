@@ -202,8 +202,8 @@ loop:
 			thisHour := time.Now().Hour() % 12
 			if thisHour != lastTolled {
 				for i := 0; i < thisHour; i++ {
-					move("up", 800)
-					move("down", 850)
+					move("up", 1000)
+					move("down", 1050)
 				}
 				lastTolled = thisHour
 			}
