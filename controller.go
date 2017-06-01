@@ -205,6 +205,7 @@ loop:
 			}
 
 			if thisHour != lastTolled {
+				log.Printf("Belltoll - %d times", thisHour)
 				for i := 0; i < thisHour; i++ {
 					move("up", 1000)
 					move("down", 1050)
