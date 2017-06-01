@@ -191,7 +191,7 @@ func DeskCommandSubscriberHandler(message Message) {
 
 func bellToll() {
 	// Start tolling at the next hour so the desk doesn't move immediately.
-	lastTolled := time.Now().Hour()
+	lastTolled := time.Now().Hour() % 12
 loop:
 	for {
 		timer := time.NewTimer(10 * time.Second)
