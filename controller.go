@@ -208,9 +208,9 @@ loop:
 			log.Printf("Belltoll - %d times", thisHour)
 			for i := 0; i < thisHour; i++ {
 				move("up", 800)
-				time.Sleep(time.Duration(1000) * time.Millisecond)
+				time.Sleep(time.Duration(1200) * time.Millisecond)
 				move("down", 850)
-				time.Sleep(time.Duration(300) * time.Millisecond)
+				time.Sleep(time.Duration(1200) * time.Millisecond)
 			}
 			// lastTolled = thisHour
 			// }

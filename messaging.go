@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// Commands are Controller instructions.
 type Command string
 
 // Possible commands that can be sent to (or from) a controller.
