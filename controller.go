@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type configuration struct {
@@ -28,9 +29,11 @@ var (
 	activeControllers = make(map[string]string)
 	// ID for the current instance of sitdown.
 	config configuration
-	// List of paired Pis to which to send commands.
-
+	// Global logger that should be used for any output.
 	logger = log.New(os.Stdin, "", log.Ltime)
+
+	// Channel specifically for killing BellToll mode.
+	bellTollKill = make(chan bool, 1)
 )
 
 func main() {
@@ -46,15 +49,15 @@ func main() {
 
 	if *commandMode {
 		EnterCommandMode()
+	} else {
+		desk.Setup(logger)
+		defer desk.Cleanup()
+
+		StartSubscriber(DeskCommandSubscriberHandler)
+		StartAnnouncing()
+
+		StartHTTPEndpoint(*port)
 	}
-
-	desk.Setup(logger)
-	defer desk.Cleanup()
-
-	StartSubscriber(DeskCommandSubscriberHandler)
-	StartAnnouncing()
-
-	StartHTTPEndpoint(*port)
 }
 
 func readConfig() {
@@ -168,11 +171,43 @@ func DeskCommandSubscriberHandler(message Message) {
 			logger.Println("Missing height for set command (skipping)")
 		}
 		setHeight(message.Params[0])
+	case BellToll:
+		if len(message.Params) < 1 {
+			logger.Println("Missing enable/disable; skipping")
+		} else if message.Params[0] == "enable" {
+			logger.Println("Enabling BellToll mode")
+			go bellToll()
+		} else {
+			logger.Println("Disabling BellToll mode")
+			bellTollKill <- true
+		}
 	case Announce:
 		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
 		addKnownController(message.ID, message.IPAddr)
 	default:
 		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
+	}
+}
+
+func bellToll() {
+	// Start tolling at the next hour so the desk doesn't move immediately.
+	lastTolled := time.Now().Hour()
+loop:
+	for {
+		timer := time.NewTimer(10 * time.Second)
+		select {
+		case <-bellTollKill:
+			break loop
+		case <-timer.C:
+			thisHour := time.Now().Hour() % 12
+			if thisHour != lastTolled {
+				for i := 0; i < thisHour; i++ {
+					move("up", 800)
+					move("down", 850)
+				}
+				lastTolled = thisHour
+			}
+		}
 	}
 }
 

@@ -23,14 +23,19 @@ type Message struct {
 }
 
 const (
-	// Possible commands that can be sent to (or by) the desk controllers.
-	Move      Command = "move"
-	SetHeight Command = "set"
-	Announce  Command = "announce"
-
 	CommandClientId = "command-client"
+	sitdownChannel  = "controller"
 
-	sitdownChannel = "controller"
+	/* Possible commands that can be sent to (or by) the desk controllers. */
+	// Moves the desk up. Syntax: move TARGET (up|down) [duration ms]
+	Move Command = "move"
+	// Sets the desk to a particular height. Syntax: set TARGET HEIGHT
+	SetHeight Command = "set"
+	// BellToll will cause the Pi to adjust up/down on the hour. Syntax: belltoll TARGET (enable|disable).
+	BellToll Command = "belltoll"
+
+	// Announce is an internal command used for discovery purposes.
+	Announce Command = "announce"
 )
 
 var pubnub *messaging.Pubnub
@@ -51,30 +56,6 @@ func CleanupPubNub() {
 		logger.Println("Failed to unsubscribe from channel: " + string(err))
 	case <-messaging.Timeout():
 		logger.Println("Timeout while unsubcribing from channel")
-	}
-}
-
-// Write a message to our channel on PubNub.
-func PublishCommand(command Command, sourceIP string, targetID string, params []string) {
-	successChan := make(chan []byte)
-	errorChan := make(chan []byte)
-
-	cmd := &Message{
-		Action:   command,
-		Params:   params,
-		ID:       config.ControllerID,
-		IPAddr:   sourceIP,
-		TargetID: targetID,
-	}
-
-	jsonCmd, _ := json.Marshal(cmd)
-	pubnub.Publish(sitdownChannel, string(jsonCmd), successChan, errorChan)
-
-	select {
-	case <-successChan:
-		logger.Printf("Publishing command: %+v\n", cmd)
-	case err := <-errorChan:
-		logger.Println("Error publishing command " + string(err))
 	}
 }
 
@@ -168,4 +149,28 @@ func StartSubscriber(handlerFn func(Message)) {
 			}
 		}
 	}()
+}
+
+// Write a message to our channel on PubNub.
+func PublishCommand(command Command, sourceIP string, targetID string, params []string) {
+	successChan := make(chan []byte)
+	errorChan := make(chan []byte)
+
+	cmd := &Message{
+		Action:   command,
+		Params:   params,
+		ID:       config.ControllerID,
+		IPAddr:   sourceIP,
+		TargetID: targetID,
+	}
+
+	jsonCmd, _ := json.Marshal(cmd)
+	pubnub.Publish(sitdownChannel, string(jsonCmd), successChan, errorChan)
+
+	select {
+	case <-successChan:
+		logger.Printf("Publishing command: %+v\n", cmd)
+	case err := <-errorChan:
+		logger.Println("Error publishing command " + string(err))
+	}
 }
