@@ -10,9 +10,16 @@ import (
 type Command string
 
 type Message struct {
+	// Action that the recipient should perform.
 	Action Command
-	Id     string
+	// Parameters for the Action.
+	Params []string
+	// ID of the sender.
+	ID string
+	// IP Address of the sender (usually only for announce).
 	IPAddr string
+	// ID of the intended recipient.
+	TargetID string
 }
 
 const (
@@ -48,14 +55,16 @@ func CleanupPubNub() {
 }
 
 // Write a message to our channel on PubNub.
-func PublishCommand(command Command, ip string) {
+func PublishCommand(command Command, sourceIP string, targetID string, params []string) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
 	cmd := &Message{
-		Action: command,
-		Id:     config.ControllerID,
-		IPAddr: ip,
+		Action:   command,
+		Params:   params,
+		ID:       config.ControllerID,
+		IPAddr:   sourceIP,
+		TargetID: targetID,
 	}
 
 	jsonCmd, _ := json.Marshal(cmd)
@@ -63,7 +72,7 @@ func PublishCommand(command Command, ip string) {
 
 	select {
 	case <-successChan:
-		logger.Println("Publishing command: " + command)
+		logger.Printf("Publishing command: %+v\n", cmd)
 	case err := <-errorChan:
 		logger.Println("Error publishing command " + string(err))
 	}
@@ -105,13 +114,13 @@ func StartAnnouncing() {
 		}
 
 		logger.Println("Announcing IP address: " + ipAddress)
-		PublishCommand(Announce, ipAddress)
+		PublishCommand(Announce, ipAddress, "all", nil)
 
 		for {
 			timer := time.NewTimer(1 * time.Minute)
 			select {
 			case <-timer.C:
-				PublishCommand(Announce, ipAddress)
+				PublishCommand(Announce, ipAddress, "all", nil)
 			}
 		}
 	}()
@@ -141,9 +150,13 @@ func StartSubscriber(handlerFn func(Message)) {
 					var message Message
 					json.Unmarshal([]byte(encoded), &message)
 
-					// Throw out messages sent from the same device.
-					if message.Id != config.ControllerID {
+					// Throw out messages sent from the same device or that
+					// are directed to another device.
+					if message.ID != config.ControllerID &&
+						(message.TargetID == "all" ||
+							message.TargetID == config.ControllerID) {
 						logger.Printf("Received command: %#v\n", message)
+
 						handlerFn(message)
 					}
 				default:

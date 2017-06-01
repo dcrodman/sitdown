@@ -2,6 +2,9 @@
 
 Hacking our standing desks for evil
 
+This is a Pandora Hackathon project aimed at controlling our neighbors' standing desks with
+Rasberry Pis. Disclaimer: code mostly written over the course of two days.
+
 ## Raspberry Pi 3 v1.2b setup
 
 1. Remove `console=serial0...` from /boot/cmdline.txt

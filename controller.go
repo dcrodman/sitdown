@@ -51,7 +51,7 @@ func main() {
 	desk.Setup()
 	defer desk.Cleanup()
 
-	StartSubscriber(DeskCommandHandler)
+	StartSubscriber(DeskCommandSubscriberHandler)
 	StartAnnouncing()
 
 	StartHTTPEndpoint(*port)
@@ -93,7 +93,7 @@ func registerSignalHandlers() {
 // exit: Kill the prompt
 // Anything else will be published directly to the controllers
 func EnterCommandMode() {
-	fmt.Println("Entering Command Mode")
+	fmt.Println("Entering Command Mode (syntax: cmd target [params])")
 	logFile, err := os.Create("controller.log")
 	if err != nil {
 		fmt.Printf("Could not open controller.log")
@@ -109,10 +109,13 @@ func EnterCommandMode() {
 loop:
 	for {
 		fmt.Print("Command: ")
-		command, _ := reader.ReadString('\n')
-		command = strings.Trim(command, "\n ")
+		fullCommand, _ := reader.ReadString('\n')
+		fullCommand = strings.Trim(fullCommand, "\n ")
 
-		switch strings.ToLower(command) {
+		splitFullCommand := strings.Split(fullCommand, " ")
+		action := splitFullCommand[0]
+
+		switch strings.ToLower(action) {
 		case "list":
 			for id, ip := range activeControllers {
 				logger.Printf("Controller @ %s (id: %s)]\n", ip, id)
@@ -122,43 +125,52 @@ loop:
 			break loop
 		}
 
-		PublishCommand(Command(command), "")
+		if len(splitFullCommand) < 2 {
+			logger.Printf("Command is missing target; skipping")
+			continue
+		}
+
+		target := splitFullCommand[1]
+		if len(splitFullCommand) > 2 {
+			PublishCommand(Command(action), "", target, splitFullCommand[2:])
+		} else {
+			PublishCommand(Command(action), "", target, nil)
+		}
 	}
 	os.Exit(0)
 }
 
-// Message handler specifically for command mode.
+// Command handler for messages received while in command mode.
 func CommandModeSubscribeHandler(message Message) {
 	splitCommand := strings.Split(string(message.Action), " ")
 	switch Command(splitCommand[0]) {
 	case Announce:
-		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
-		addKnownController(message.Id, message.IPAddr)
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
+		addKnownController(message.ID, message.IPAddr)
 	}
 }
 
 // Command handler that should be running on the actual desk controllers.
-func DeskCommandHandler(message Message) {
-	splitCommand := strings.Split(string(message.Action), " ")
-	switch Command(splitCommand[0]) {
+func DeskCommandSubscriberHandler(message Message) {
+	switch Command(message.Action) {
 	case Move:
-		switch len := len(splitCommand); len {
-		case 1:
+		switch len(message.Params) {
+		case 0:
 			logger.Println("Missing direction from move command (skipping)")
-		case 2:
-			move(splitCommand[1], 1000)
+		case 1:
+			move(message.Params[0], 1000)
 		default:
-			duration, _ := strconv.ParseInt(splitCommand[2], 10, 32)
-			move(splitCommand[1], int(duration))
+			duration, _ := strconv.ParseInt(message.Params[1], 10, 32)
+			move(message.Params[0], int(duration))
 		}
 	case SetHeight:
-		if len := len(splitCommand); len <= 1 {
+		if len(message.Params) <= 1 {
 			logger.Println("Missing height for set command (skipping)")
 		}
-		setHeight(splitCommand[1])
+		setHeight(message.Params[0])
 	case Announce:
-		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.Id)
-		addKnownController(message.Id, message.IPAddr)
+		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
+		addKnownController(message.ID, message.IPAddr)
 	default:
 		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
 	}
