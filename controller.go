@@ -166,7 +166,7 @@ func DeskCommandSubscriberHandler(message Message) {
 			duration, _ := strconv.ParseInt(message.Params[1], 10, 32)
 			move(message.Params[0], int(duration))
 		}
-	case SetHeight:
+	case Set:
 		if len(message.Params) <= 1 {
 			logger.Println("Missing height for set command (skipping)")
 		}
@@ -210,6 +210,7 @@ loop:
 				move("up", 800)
 				time.Sleep(time.Duration(1000) * time.Millisecond)
 				move("down", 850)
+				time.Sleep(time.Duration(300) * time.Millisecond)
 			}
 			// lastTolled = thisHour
 			// }

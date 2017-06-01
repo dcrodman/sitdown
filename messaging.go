@@ -7,7 +7,20 @@ import (
 	"time"
 )
 
+// Commands are Controller instructions.
 type Command string
+
+// Possible commands that can be sent to (or from) a controller.
+const (
+	// Move the desk up. Syntax: move TARGET (up|down) [duration ms]
+	Move Command = "move"
+	// Set the desk to a particular height. Syntax: set TARGET HEIGHT
+	Set Command = "set"
+	// BellToll will cause the Pi to adjust up/down on the hour. Syntax: belltoll TARGET (enable|disable).
+	BellToll Command = "belltoll"
+	// Announce is an internal command used for discovery purposes.
+	Announce Command = "announce"
+)
 
 type Message struct {
 	// Action that the recipient should perform.
@@ -25,17 +38,6 @@ type Message struct {
 const (
 	CommandClientId = "command-client"
 	sitdownChannel  = "controller"
-
-	/* Possible commands that can be sent to (or by) the desk controllers. */
-	// Moves the desk up. Syntax: move TARGET (up|down) [duration ms]
-	Move Command = "move"
-	// Sets the desk to a particular height. Syntax: set TARGET HEIGHT
-	SetHeight Command = "set"
-	// BellToll will cause the Pi to adjust up/down on the hour. Syntax: belltoll TARGET (enable|disable).
-	BellToll Command = "belltoll"
-
-	// Announce is an internal command used for discovery purposes.
-	Announce Command = "announce"
 )
 
 var pubnub *messaging.Pubnub
