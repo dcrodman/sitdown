@@ -200,6 +200,10 @@ loop:
 			break loop
 		case <-timer.C:
 			thisHour := time.Now().Hour() % 12
+			if thisHour == 0 {
+				thisHour = 12
+			}
+
 			if thisHour != lastTolled {
 				for i := 0; i < thisHour; i++ {
 					move("up", 1000)
