@@ -19,6 +19,8 @@ type Controller struct {
 	PubKey string
 	SubKey string
 
+	desk *Desk
+
 	// Map of the IDs of active desk controllers to their IP addresses.
 	activeControllers map[string]string
 	// Unbuffered channel specifically for killing BellToll mode.
@@ -37,6 +39,10 @@ func (c *Controller) InitFromConfig() {
 
 	json.Unmarshal([]byte(fileContents), &c)
 	logger.Printf("Initializing controller with ID: %s\n", c.ID)
+
+	c.desk = new(Desk)
+	c.activeControllers = make(map[string]string)
+	c.bellTollKill = make(chan bool, 1)
 }
 
 // Command client mode for communicating with the desk controllers remotely. This is
@@ -106,14 +112,14 @@ func (c *Controller) handleCommandModeMessage(message Message) {
 
 // Server mode for processing requests to make a desk do funny things.
 func (c *Controller) EnterDeskControlMode() {
-	desk.Setup(logger)
+	c.desk.Setup(logger)
 	messenger.StartAnnouncing()
 	messenger.StartSubscriber(c.handleDeskControllerMessage)
 }
 
 // Cleanup releases the GPIO resources for controlling the desk. Only needed for desk contol mode.
 func (c Controller) Cleanup() {
-	desk.Cleanup()
+	c.desk.Cleanup()
 }
 
 // Command handler that should be running on the actual desk controllers.
@@ -185,6 +191,10 @@ func (c Controller) DisableBellToll() {
 	c.bellTollKill <- true
 }
 
+func (c *Controller) GetHeight() float32 {
+	return c.desk.Height()
+}
+
 func (c Controller) SetHeight(height string) {
 	logger.Println("Setting height to " + height)
 
@@ -193,15 +203,15 @@ func (c Controller) SetHeight(height string) {
 		logger.Printf("Invalid height: %f\n", h)
 		return
 	}
-	desk.ChangeToHeight(float32(h))
+	c.desk.ChangeToHeight(float32(h))
 }
 
 func (c Controller) Move(direction string, time int) {
 	logger.Printf("Moving desk %s for %d", direction, time)
 	switch direction {
 	case "up":
-		desk.RaiseForDuration(time)
+		c.desk.RaiseForDuration(time)
 	case "down":
-		desk.LowerForDuration(time)
+		c.desk.LowerForDuration(time)
 	}
 }

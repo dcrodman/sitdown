@@ -25,10 +25,7 @@ func main() {
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
-	controller = &Controller{
-		activeControllers: make(map[string]string),
-		bellTollKill:      make(chan bool, 1),
-	}
+	controller = new(Controller)
 	controller.InitFromConfig()
 
 	registerSignalHandlers()
@@ -92,7 +89,7 @@ func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
 
 	logger.Printf("Received move command: %s %d\n", direction, duration)
 	controller.Move(direction, duration)
-	fmt.Fprintf(responseWriter, "Moved to %.1f", desk.Height())
+	fmt.Fprintf(responseWriter, "Moved to %.1f", controller.GetHeight())
 }
 
 // Handler method for HTTP requests sent to /set.
@@ -103,10 +100,10 @@ func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 	controller.SetHeight(vals["height"][0])
-	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
+	fmt.Fprintf(responseWriter, "Changed to %.1f", controller.GetHeight())
 }
 
 // Handler method for HTTP requests sent to /height.
 func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
+	fmt.Fprintf(responseWriter, "%.1f", controller.GetHeight())
 }
