@@ -38,10 +38,9 @@ type Desk struct {
 	currentHeight float32
 }
 
-var desk *Desk
+var desk Desk
 
 func (d *Desk) Setup(log *log.Logger) {
-	desk = new(Desk)
 	d.pinButtonUp = rpio.Pin(16)
 	d.pinButtonDown = rpio.Pin(12)
 
