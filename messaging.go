@@ -45,6 +45,7 @@ type Messenger struct {
 
 func (m *Messenger) Initialize() {
 	m.pubnub = messaging.NewPubnub(controller.PubKey, controller.SubKey, "", "", true, "", nil)
+	m.pubnub.SetUUID(controller.ID)
 }
 
 func (m *Messenger) Cleanup() {
