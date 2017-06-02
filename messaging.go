@@ -42,7 +42,7 @@ const (
 var pubnub *messaging.Pubnub
 
 func InitializePubNub() {
-	pubnub = messaging.NewPubnub(config.PubKey, config.SubKey, "", "", true, "", nil)
+	pubnub = messaging.NewPubnub(controller.PubKey, controller.SubKey, "", "", true, "", nil)
 }
 
 func CleanupPubNub() {
@@ -134,9 +134,9 @@ func StartSubscriber(handlerFn func(Message)) {
 
 					// Throw out messages sent from the same device or that
 					// are directed to another device.
-					if message.ID != config.ControllerID &&
+					if message.ID != controller.ID &&
 						(message.TargetID == "all" ||
-							message.TargetID == config.ControllerID) {
+							message.TargetID == controller.ID) {
 						logger.Printf("Received command: %#v\n", message)
 
 						handlerFn(message)
@@ -160,7 +160,7 @@ func PublishCommand(command Command, sourceIP string, targetID string, params []
 	cmd := &Message{
 		Action:   command,
 		Params:   params,
-		ID:       config.ControllerID,
+		ID:       controller.ID,
 		IPAddr:   sourceIP,
 		TargetID: targetID,
 	}
