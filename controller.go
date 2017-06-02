@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/dcrodman/sitdown/desk"
 	"io/ioutil"
 	"log"
 	"os"

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/dcrodman/sitdown/desk"
 	"net/http"
 	"net/url"
 	"strconv"
