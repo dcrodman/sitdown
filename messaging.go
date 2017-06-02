@@ -21,6 +21,11 @@ const (
 	Announce Command = "announce"
 )
 
+const (
+	CommandClientId = "command-client"
+	sitdownChannel  = "controller"
+)
+
 type Message struct {
 	// Action that the recipient should perform.
 	Action Command
@@ -34,22 +39,19 @@ type Message struct {
 	TargetID string
 }
 
-const (
-	CommandClientId = "command-client"
-	sitdownChannel  = "controller"
-)
-
-var pubnub *messaging.Pubnub
-
-func InitializePubNub() {
-	pubnub = messaging.NewPubnub(controller.PubKey, controller.SubKey, "", "", true, "", nil)
+type Messenger struct {
+	pubnub *messaging.Pubnub
 }
 
-func CleanupPubNub() {
+func (m *Messenger) Initialize() {
+	m.pubnub = messaging.NewPubnub(controller.PubKey, controller.SubKey, "", "", true, "", nil)
+}
+
+func (m *Messenger) Cleanup() {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
-	go pubnub.Unsubscribe(sitdownChannel, successChan, errorChan)
+	go m.pubnub.Unsubscribe(sitdownChannel, successChan, errorChan)
 	select {
 	case <-successChan:
 		logger.Println("Unsubscribed from channel")
@@ -62,7 +64,7 @@ func CleanupPubNub() {
 
 // Kick off a goroutine that will write a message to the channel with some basic
 // info about the device for discovery by other controllers and the command client.
-func StartAnnouncing() {
+func (m Messenger) StartAnnouncing() {
 	go func() {
 		interfaces, err := net.Interfaces()
 		if err != nil {
@@ -96,13 +98,13 @@ func StartAnnouncing() {
 		}
 
 		logger.Println("Announcing IP address: " + ipAddress)
-		PublishCommand(Announce, ipAddress, "all", nil)
+		m.Publish(Announce, ipAddress, "all", nil)
 
 		for {
 			timer := time.NewTimer(1 * time.Minute)
 			select {
 			case <-timer.C:
-				PublishCommand(Announce, ipAddress, "all", nil)
+				m.Publish(Announce, ipAddress, "all", nil)
 			}
 		}
 	}()
@@ -110,12 +112,12 @@ func StartAnnouncing() {
 
 // Subscribe to the PubNub channel and decode messages as they come in.
 // Valid messages will be passed to handlerFn with the full Message struct.
-func StartSubscriber(handlerFn func(Message)) {
+func (m Messenger) StartSubscriber(handlerFn func(Message)) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
 	logger.Println("Subscribing to " + sitdownChannel)
-	go pubnub.Subscribe(sitdownChannel, "", successChan, false, errorChan)
+	go m.pubnub.Subscribe(sitdownChannel, "", successChan, false, errorChan)
 
 	go func() {
 		for {
@@ -153,7 +155,7 @@ func StartSubscriber(handlerFn func(Message)) {
 }
 
 // Write a message to our channel on PubNub.
-func PublishCommand(command Command, sourceIP string, targetID string, params []string) {
+func (m Messenger) Publish(command Command, sourceIP string, targetID string, params []string) {
 	successChan := make(chan []byte)
 	errorChan := make(chan []byte)
 
@@ -166,7 +168,7 @@ func PublishCommand(command Command, sourceIP string, targetID string, params []
 	}
 
 	jsonCmd, _ := json.Marshal(cmd)
-	pubnub.Publish(sitdownChannel, string(jsonCmd), successChan, errorChan)
+	m.pubnub.Publish(sitdownChannel, string(jsonCmd), successChan, errorChan)
 
 	select {
 	case <-successChan:

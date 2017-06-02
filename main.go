@@ -2,9 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 )
 
 var (
@@ -12,6 +16,8 @@ var (
 	logger = log.New(os.Stdin, "", log.Ltime)
 	// Controller instance for the currently running sitdown process.
 	controller *Controller
+	// Messenger instance responsible for PubNub communication.
+	messenger *Messenger
 )
 
 func main() {
@@ -23,12 +29,13 @@ func main() {
 		activeControllers: make(map[string]string),
 		bellTollKill:      make(chan bool, 1),
 	}
-	controller.initFromConfig()
+	controller.InitFromConfig()
 
 	registerSignalHandlers()
 
-	InitializePubNub()
-	defer CleanupPubNub()
+	messenger = new(Messenger)
+	messenger.Initialize()
+	defer messenger.Cleanup()
 
 	if *commandMode {
 		controller.EnterCommandMode()
@@ -48,7 +55,58 @@ func registerSignalHandlers() {
 		<-killChan
 		logger.Println("Cleaning up from signal handler")
 		controller.Cleanup()
-		CleanupPubNub()
+		messenger.Cleanup()
 		os.Exit(0)
 	}()
+}
+
+// Start and block on an HTTP client listening for commands from the network.
+func StartHTTPEndpoint(port string) {
+	http.HandleFunc("/move", HandleMove)
+	http.HandleFunc("/set", HandleSet)
+	http.HandleFunc("/height", HandleHeight)
+	logger.Println("Starting HTTP server")
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		panic(err)
+	}
+}
+
+// Handler method for HTTP requests sent to /move.
+func HandleMove(responseWriter http.ResponseWriter, request *http.Request) {
+	vals, err := url.ParseQuery(request.URL.RawQuery)
+	if err != nil {
+		logger.Println(err)
+		return
+	}
+	direction := vals["direction"][0]
+	if direction != "down" && direction != "up" {
+		logger.Printf("Invalid direction: %s\n", direction)
+		return
+	}
+	duration, err := strconv.Atoi(vals["time"][0])
+	if err != nil || duration < 0 || duration > 10000 {
+		logger.Printf("Invalid time: %d\n", duration)
+		return
+	}
+
+	logger.Printf("Received move command: %s %d\n", direction, duration)
+	controller.Move(direction, duration)
+	fmt.Fprintf(responseWriter, "Moved to %.1f", desk.Height())
+}
+
+// Handler method for HTTP requests sent to /set.
+func HandleSet(responseWriter http.ResponseWriter, request *http.Request) {
+	vals, err := url.ParseQuery(request.URL.RawQuery)
+	if err != nil {
+		logger.Println(err)
+		return
+	}
+	controller.SetHeight(vals["height"][0])
+	fmt.Fprintf(responseWriter, "Changed to %.1f", desk.Height())
+}
+
+// Handler method for HTTP requests sent to /height.
+func HandleHeight(responseWriter http.ResponseWriter, request *http.Request) {
+	fmt.Fprintf(responseWriter, "%.1f", desk.Height())
 }

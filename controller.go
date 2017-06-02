@@ -25,7 +25,7 @@ type Controller struct {
 	bellTollKill chan bool
 }
 
-func (c *Controller) initFromConfig() {
+func (c *Controller) InitFromConfig() {
 	fileContents, err := ioutil.ReadFile(configFilename)
 	if err != nil {
 		fileContents, err = ioutil.ReadFile("/home/pi/" + configFilename)
@@ -55,10 +55,10 @@ func (c *Controller) EnterCommandMode() {
 	}
 	// Reinitialize the logger from stdout so that we don't interfere with the prompt.
 	logger = log.New(logFile, "", log.Ltime)
-	controller.ID = CommandClientId
+	c.ID = CommandClientId
 
 	reader := bufio.NewReader(os.Stdin)
-	StartSubscriber(c.CommandModeSubscribeHandler)
+	messenger.StartSubscriber(c.handleCommandModeMessage)
 
 loop:
 	for {
@@ -86,16 +86,16 @@ loop:
 
 		target := splitFullCommand[1]
 		if len(splitFullCommand) > 2 {
-			PublishCommand(Command(action), "", target, splitFullCommand[2:])
+			messenger.Publish(Command(action), "", target, splitFullCommand[2:])
 		} else {
-			PublishCommand(Command(action), "", target, nil)
+			messenger.Publish(Command(action), "", target, nil)
 		}
 	}
 	os.Exit(0)
 }
 
 // Command handler for messages received while in command mode.
-func (c *Controller) CommandModeSubscribeHandler(message Message) {
+func (c *Controller) handleCommandModeMessage(message Message) {
 	splitCommand := strings.Split(string(message.Action), " ")
 	switch Command(splitCommand[0]) {
 	case Announce:
@@ -107,37 +107,40 @@ func (c *Controller) CommandModeSubscribeHandler(message Message) {
 // Server mode for processing requests to make a desk do funny things.
 func (c *Controller) EnterDeskControlMode() {
 	desk.Setup(logger)
-	StartAnnouncing()
-	StartSubscriber(c.DeskCommandSubscriberHandler)
+	messenger.StartAnnouncing()
+	messenger.StartSubscriber(c.handleDeskControllerMessage)
+}
+
+// Cleanup releases the GPIO resources for controlling the desk. Only needed for desk contol mode.
+func (c Controller) Cleanup() {
+	desk.Cleanup()
 }
 
 // Command handler that should be running on the actual desk controllers.
-func (c *Controller) DeskCommandSubscriberHandler(message Message) {
+func (c *Controller) handleDeskControllerMessage(message Message) {
 	switch Command(message.Action) {
 	case Move:
 		switch len(message.Params) {
 		case 0:
 			logger.Println("Missing direction from move command (skipping)")
 		case 1:
-			move(message.Params[0], 1000)
+			c.Move(message.Params[0], 1000)
 		default:
 			duration, _ := strconv.ParseInt(message.Params[1], 10, 32)
-			move(message.Params[0], int(duration))
+			c.Move(message.Params[0], int(duration))
 		}
 	case Set:
 		if len(message.Params) <= 1 {
 			logger.Println("Missing height for set command (skipping)")
 		}
-		setHeight(message.Params[0])
+		c.SetHeight(message.Params[0])
 	case BellToll:
 		if len(message.Params) < 1 {
 			logger.Println("Missing enable/disable; skipping")
 		} else if message.Params[0] == "enable" {
-			logger.Println("Enabling BellToll mode")
-			go bellToll()
+			go c.EnableBellToll()
 		} else {
-			logger.Println("Disabling BellToll mode")
-			c.bellTollKill <- true
+			c.DisableBellToll()
 		}
 	case Announce:
 		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
@@ -147,11 +150,8 @@ func (c *Controller) DeskCommandSubscriberHandler(message Message) {
 	}
 }
 
-func (c Controller) Cleanup() {
-	desk.Cleanup()
-}
-
-func bellToll() {
+func (c Controller) EnableBellToll() {
+	logger.Println("Enabling BellToll mode")
 	// Start tolling at the next hour so the desk doesn't move immediately.
 	// lastTolled := time.Now().Hour() % 12
 loop:
@@ -169,9 +169,9 @@ loop:
 			// if thisHour != lastTolled {
 			log.Printf("Belltoll - %d times", thisHour)
 			for i := 0; i < thisHour; i++ {
-				move("up", 800)
+				c.Move("up", 800)
 				time.Sleep(time.Duration(1200) * time.Millisecond)
-				move("down", 850)
+				c.Move("down", 850)
 				time.Sleep(time.Duration(1200) * time.Millisecond)
 			}
 			// lastTolled = thisHour
@@ -180,7 +180,14 @@ loop:
 	}
 }
 
-func setHeight(height string) {
+func (c Controller) DisableBellToll() {
+	logger.Println("Disabling BellToll mode")
+	c.bellTollKill <- true
+}
+
+func (c Controller) SetHeight(height string) {
+	logger.Println("Setting height to " + height)
+
 	h, err := strconv.ParseFloat(height, 32)
 	if err != nil || h < 28.1 || h > 47.5 {
 		logger.Printf("Invalid height: %f\n", h)
@@ -189,7 +196,8 @@ func setHeight(height string) {
 	desk.ChangeToHeight(float32(h))
 }
 
-func move(direction string, time int) {
+func (c Controller) Move(direction string, time int) {
+	logger.Printf("Moving desk %s for %d", direction, time)
 	switch direction {
 	case "up":
 		desk.RaiseForDuration(time)
