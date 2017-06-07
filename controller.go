@@ -129,13 +129,11 @@ func (c Controller) Cleanup() {
 
 // Command handler that should be running on the actual desk controllers.
 func (c *Controller) handleDeskControllerMessage(message Message) {
-	if len(message.Params) <= 1 {
-		logger.Println("Missing parameters in command; skipping")
-	}
-
 	switch Command(message.Action) {
 	case Move:
 		switch len(message.Params) {
+		case 0:
+			logger.Println("Missing parameters in Move command; skipping")
 		case 1:
 			c.Move(message.Params[0], 1000)
 		default:
@@ -143,15 +141,22 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 			c.Move(message.Params[0], int(duration))
 		}
 	case Set:
+		if len(message.Params) < 1 {
+			logger.Println("Missing parameters in Set command; skipping")
+		}
 		c.SetHeight(message.Params[0])
 	case BellToll:
-		if message.Params[0] == "enable" {
+		if len(message.Params) < 1 {
+			logger.Println("Missing parameters in BellToll command; skipping")
+		} else if message.Params[0] == "enable" {
 			go c.EnableBellToll()
 		} else {
 			c.DisableBellToll()
 		}
 	case FixHeight:
-		if message.Params[0] == "enable" {
+		if len(message.Params) < 1 {
+			logger.Println("Missing parameters in FixHeight command; skipping")
+		} else if message.Params[0] == "enable" {
 			go c.EnableFixedHeight()
 		} else {
 			c.desk.ResetListeners()
