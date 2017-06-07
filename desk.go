@@ -44,6 +44,7 @@ type Desk struct {
 func (d *Desk) Setup(log *log.Logger) {
 	d.pinButtonUp = rpio.Pin(16)
 	d.pinButtonDown = rpio.Pin(12)
+	d.moveMux = new(sync.Mutex)
 
 	if err := rpio.Open(); err != nil {
 		panic(err)
