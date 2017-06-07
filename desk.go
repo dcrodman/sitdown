@@ -157,11 +157,11 @@ func (d Desk) heightMonitor() {
 	}
 }
 
-func (d Desk) AddListener(listener DeskListener) {
+func (d *Desk) AddListener(listener DeskListener) {
 	d.listeners = append(d.listeners, listener)
 }
 
-func (d Desk) ResetListeners() {
+func (d *Desk) ResetListeners() {
 	d.listeners = nil
 }
 
