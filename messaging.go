@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/pubnub/go/messaging"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -138,11 +139,12 @@ func (m Messenger) StartSubscriber(handlerFn func(Message)) {
 					var message Message
 					json.Unmarshal([]byte(encoded), &message)
 
+					targetID := strings.ToLower(message.TargetID)
+
 					// Throw out messages sent from the same device or that
 					// are directed to another device.
 					if message.ID != controller.ID &&
-						(message.TargetID == "all" ||
-							message.TargetID == controller.ID) {
+						(targetID == "all" || targetID == controller.ID) {
 						logger.Printf("Received command: %#v\n", message)
 
 						handlerFn(message)
