@@ -85,6 +85,10 @@ func (d Desk) RaiseForDuration(duration int) {
 	d.raise()
 	sleep(duration)
 	d.Stop()
+
+	for _, listener := range d.listeners {
+		listener.DeskRaised()
+	}
 }
 
 func (d Desk) LowerForDuration(duration int) {
@@ -93,6 +97,10 @@ func (d Desk) LowerForDuration(duration int) {
 	d.lower()
 	sleep(duration)
 	d.Stop()
+
+	for _, listener := range d.listeners {
+		listener.DeskLowered()
+	}
 }
 
 func (d Desk) ChangeToHeight(height float32) {
@@ -107,6 +115,9 @@ func (d Desk) ChangeToHeight(height float32) {
 	for {
 		if destLow <= d.currentHeight && d.currentHeight <= destHigh {
 			d.Stop()
+			for _, listener := range d.listeners {
+				listener.HeightSet(destHigh)
+			}
 			return
 		} else if d.currentHeight > height {
 			d.pinButtonUp.High()
@@ -172,13 +183,21 @@ func sleep(ms int) {
 // DeskListener is an interface for functions that want to be notified of
 // some change of state in the desk.
 type DeskListener interface {
+	// DeskRaised is called when the desk has been raised to a new height.
+	DeskRaised()
+	// DeskRaised is called when the desk has been lowered to a new height.
+	DeskLowered()
+	// HeightSet is called after the desk has been set to a specified height.
+	HeightSet(newHeight float32)
+	// HeightChanged is called on a DeskListener whenever the height of the desk changes.
+	// Note that this is called by the serial stream monitor and will be hit often.
 	HeightChanged(newHeight float32)
 }
 
 // EmptyListener is a no-op listener that can be embedded for convenience.
-type EmptyListener struct {
-}
+type EmptyListener struct{}
 
-func (listener *EmptyListener) HeightChanged(newHeight float32) {
-	logger.Println("No-op listener called")
-}
+func (listener *EmptyListener) DeskRaised()                     {}
+func (listener *EmptyListener) DeskLowered()                    {}
+func (listener *EmptyListener) HeightChanged(newHeight float32) {}
+func (listener *EmptyListener) HeightSet(newHeight float32)     {}
