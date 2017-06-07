@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -28,8 +29,6 @@ type Controller struct {
 
 	// Unbuffered channel specifically for killing bellToll mode.
 	bellTollKill chan bool
-	// Unbuffered channel specifically for killing fixed height mode.
-	fixedHeightKill chan bool
 }
 
 func (c *Controller) InitFromConfig() {
@@ -156,12 +155,12 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 	case FixHeight:
 		if len(message.Params) < 1 {
 			logger.Println("Missing parameters in FixHeight command; skipping")
-		} else if message.Params[0] == "enable" {
-			logger.Println("Adding FixedHeightListener to desk")
-			c.desk.AddListener(new(FixedHeightListener))
-		} else {
+		} else if message.Params[0] == "disable" {
 			logger.Println("Removing FixedHeightListener from desk")
 			c.desk.ResetListeners()
+		} else {
+			logger.Println("Adding FixedHeightListener to desk")
+			c.desk.AddListener(&FixedHeightListener{height: message.Params[0]})
 		}
 	case Announce:
 		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
@@ -234,9 +233,29 @@ func (c *Controller) DisableBellToll() {
 // FixedHeightListener is a listener that will reset the desk to a configured height.
 type FixedHeightListener struct {
 	EmptyListener
-	height float32
+	height string
+
+	resetKillChan chan bool
 }
 
 func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
-	logger.Println("Listener notified of height change")
+	// If we've already kicked off a reset timer then kill it before scheduling a new one.
+	if listener.resetKillChan != nil {
+		listener.resetKillChan <- true
+	}
+
+	go func() {
+		randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
+		numSeconds := randGen.Int() % 15
+		timer := time.NewTimer(time.Duration(numSeconds) * time.Second)
+
+		listener.resetKillChan = make(chan bool, 1)
+		select {
+		case <-listener.resetKillChan:
+			// Do nothing; a new timer is being scheduled.
+		case <-timer.C:
+			controller.SetHeight(listener.height)
+			listener.resetKillChan = nil
+		}
+	}()
 }
