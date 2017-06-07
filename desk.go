@@ -179,4 +179,6 @@ type DeskListener interface {
 type EmptyListener struct {
 }
 
-func (listener EmptyListener) HeightChanged(newHeight float32) {}
+func (listener EmptyListener) HeightChanged(newHeight float32) {
+	logger.Println("No-op listener called")
+}

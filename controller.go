@@ -157,8 +157,10 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 		if len(message.Params) < 1 {
 			logger.Println("Missing parameters in FixHeight command; skipping")
 		} else if message.Params[0] == "enable" {
-			go c.EnableFixedHeight()
+			logger.Println("Adding FixedHeightListener to desk")
+			c.desk.AddListener(new(FixedHeightListener))
 		} else {
+			logger.Println("Removing FixedHeightListener from desk")
 			c.desk.ResetListeners()
 		}
 	case Announce:
@@ -227,10 +229,6 @@ loop:
 func (c Controller) DisableBellToll() {
 	logger.Println("Disabling BellToll mode")
 	c.bellTollKill <- true
-}
-
-func (c Controller) EnableFixedHeight() {
-	c.desk.AddListener(new(FixedHeightListener))
 }
 
 // FixedHeightListener is a listener that will reset the desk to a configured height.
