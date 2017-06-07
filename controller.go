@@ -171,7 +171,7 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 	}
 }
 
-func (c Controller) Move(direction string, time int) {
+func (c *Controller) Move(direction string, time int) {
 	logger.Printf("Moving desk %s for %d", direction, time)
 	switch direction {
 	case "up":
@@ -181,7 +181,7 @@ func (c Controller) Move(direction string, time int) {
 	}
 }
 
-func (c Controller) SetHeight(height string) {
+func (c *Controller) SetHeight(height string) {
 	logger.Println("Setting height to " + height)
 
 	h, err := strconv.ParseFloat(height, 32)
@@ -196,7 +196,7 @@ func (c *Controller) GetHeight() float32 {
 	return c.desk.Height()
 }
 
-func (c Controller) EnableBellToll() {
+func (c *Controller) EnableBellToll() {
 	logger.Println("Enabling BellToll mode")
 	// Start tolling at the next hour so the desk doesn't move immediately.
 	// lastTolled := time.Now().Hour() % 12
@@ -226,7 +226,7 @@ loop:
 	}
 }
 
-func (c Controller) DisableBellToll() {
+func (c *Controller) DisableBellToll() {
 	logger.Println("Disabling BellToll mode")
 	c.bellTollKill <- true
 }
@@ -237,6 +237,6 @@ type FixedHeightListener struct {
 	height float32
 }
 
-func (listener FixedHeightListener) HeightChanged(newHeight float32) {
+func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 	logger.Println("Listener notified of height change")
 }

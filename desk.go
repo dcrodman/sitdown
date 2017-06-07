@@ -135,7 +135,7 @@ func (d Desk) Height() float32 {
 	return d.currentHeight
 }
 
-func (d Desk) heightMonitor() {
+func (d *Desk) heightMonitor() {
 	for {
 		data := make([]byte, 4)
 		n, err := d.serialFile.Read(data)
@@ -148,10 +148,10 @@ func (d Desk) heightMonitor() {
 			if newHeight != d.currentHeight {
 				logger.Printf("Height changed to %.1f from %.1f\n", newHeight, d.currentHeight)
 				d.currentHeight = newHeight
-			}
 
-			for _, listener := range d.listeners {
-				listener.HeightChanged(newHeight)
+				for _, listener := range d.listeners {
+					listener.HeightChanged(newHeight)
+				}
 			}
 		}
 	}
@@ -179,6 +179,6 @@ type DeskListener interface {
 type EmptyListener struct {
 }
 
-func (listener EmptyListener) HeightChanged(newHeight float32) {
+func (listener *EmptyListener) HeightChanged(newHeight float32) {
 	logger.Println("No-op listener called")
 }
