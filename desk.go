@@ -157,9 +157,7 @@ func (d *Desk) heightMonitor() {
 		} else if data[1] == 1 {
 			newHeight := baseHeight + float32(int(data[3])-minHeight)/10
 			if newHeight != d.currentHeight {
-				logger.Printf("Height changed to %.1f from %.1f\n", newHeight, d.currentHeight)
 				d.currentHeight = newHeight
-
 				for _, listener := range d.listeners {
 					listener.HeightChanged(newHeight)
 				}

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -235,27 +236,40 @@ type FixedHeightListener struct {
 	EmptyListener
 	height string
 
-	resetKillChan chan bool
+	chanMutex        sync.Mutex
+	resetKillChannel chan bool
 }
 
 func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 	// If we've already kicked off a reset timer then kill it before scheduling a new one.
-	if listener.resetKillChan != nil {
-		listener.resetKillChan <- true
+	listener.chanMutex.Lock()
+	if listener.resetKillChannel != nil {
+		listener.resetKillChannel <- true
 	}
+	listener.chanMutex.Unlock()
 
 	go func() {
 		randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
-		numSeconds := randGen.Int() % 15
+		numSeconds := randGen.Int() % 30
+		if numSeconds < 10 {
+			numSeconds = 10
+		}
 		timer := time.NewTimer(time.Duration(numSeconds) * time.Second)
 
-		listener.resetKillChan = make(chan bool, 1)
+		listener.chanMutex.Lock()
+		listener.resetKillChannel = make(chan bool, 1)
+		listener.chanMutex.Unlock()
+
 		select {
-		case <-listener.resetKillChan:
+		case <-listener.resetKillChannel:
 			// Do nothing; a new timer is being scheduled.
 		case <-timer.C:
+			logger.Println("Resetting height to " + listener.height)
 			controller.SetHeight(listener.height)
-			listener.resetKillChan = nil
+
+			listener.chanMutex.Lock()
+			listener.resetKillChannel = nil
+			listener.chanMutex.Unlock()
 		}
 	}()
 }
