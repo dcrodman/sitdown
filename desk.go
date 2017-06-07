@@ -29,6 +29,7 @@ var serialOptions = serial.OpenOptions{
 	Rs485RtsHighAfterSend:  false,
 }
 
+// Desk is the singleton controller for the GPIO pins that control the desk.
 type Desk struct {
 	pinButtonUp   rpio.Pin
 	pinButtonDown rpio.Pin
@@ -36,6 +37,8 @@ type Desk struct {
 	moveMux       *sync.Mutex
 	serialFile    io.ReadWriteCloser
 	currentHeight float32
+
+	listeners []DeskListener
 }
 
 func (d *Desk) Setup(log *log.Logger) {
@@ -145,10 +148,34 @@ func (d Desk) heightMonitor() {
 				logger.Printf("Height changed to %.1f from %.1f\n", newHeight, d.currentHeight)
 				d.currentHeight = newHeight
 			}
+
+			for _, listener := range d.listeners {
+				listener.HeightChanged(newHeight)
+			}
 		}
 	}
+}
+
+func (d Desk) AddListener(listener DeskListener) {
+	d.listeners = append(d.listeners, listener)
+}
+
+func (d Desk) ResetListeners() {
+	d.listeners = nil
 }
 
 func sleep(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
+
+// DeskListener is an interface for functions that want to be notified of
+// some change of state in the desk.
+type DeskListener interface {
+	HeightChanged(newHeight float32)
+}
+
+// EmptyListener is a no-op listener that can be embedded for convenience.
+type EmptyListener struct {
+}
+
+func (listener EmptyListener) HeightChanged(newHeight float32) {}

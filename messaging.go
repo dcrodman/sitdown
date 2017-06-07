@@ -17,6 +17,9 @@ const (
 	Set Command = "set"
 	// BellToll will cause the Pi to adjust up/down on the hour. Syntax: belltoll TARGET (enable|disable).
 	BellToll Command = "belltoll"
+	// FixHeight will cause a desk to reset to the specified height when changed (after a small delay).
+	// Syntax: fixheight TARGET (enable|disable)
+	FixHeight Command = "fixheight"
 	// Announce is an internal command used for discovery purposes.
 	Announce Command = "announce"
 )

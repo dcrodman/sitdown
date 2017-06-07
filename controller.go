@@ -14,17 +14,22 @@ import (
 
 const configFilename = "controller.conf"
 
+// Controller is the singleton for most of Sitdown's operation. It can be used as a
+// central controller for other desks or the controller to do things with a specific desk.
 type Controller struct {
 	ID     string
 	PubKey string
 	SubKey string
 
+	// Desk instance used to control the standing desk if running in control mode.
 	desk *Desk
-
 	// Map of the IDs of active desk controllers to their IP addresses.
 	activeControllers map[string]string
-	// Unbuffered channel specifically for killing BellToll mode.
+
+	// Unbuffered channel specifically for killing bellToll mode.
 	bellTollKill chan bool
+	// Unbuffered channel specifically for killing fixed height mode.
+	fixedHeightKill chan bool
 }
 
 func (c *Controller) InitFromConfig() {
@@ -124,11 +129,13 @@ func (c Controller) Cleanup() {
 
 // Command handler that should be running on the actual desk controllers.
 func (c *Controller) handleDeskControllerMessage(message Message) {
+	if len(message.Params) <= 1 {
+		logger.Println("Missing parameters in command; skipping")
+	}
+
 	switch Command(message.Action) {
 	case Move:
 		switch len(message.Params) {
-		case 0:
-			logger.Println("Missing direction from move command (skipping)")
 		case 1:
 			c.Move(message.Params[0], 1000)
 		default:
@@ -136,17 +143,18 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 			c.Move(message.Params[0], int(duration))
 		}
 	case Set:
-		if len(message.Params) <= 1 {
-			logger.Println("Missing height for set command (skipping)")
-		}
 		c.SetHeight(message.Params[0])
 	case BellToll:
-		if len(message.Params) < 1 {
-			logger.Println("Missing enable/disable; skipping")
-		} else if message.Params[0] == "enable" {
+		if message.Params[0] == "enable" {
 			go c.EnableBellToll()
 		} else {
 			c.DisableBellToll()
+		}
+	case FixHeight:
+		if message.Params[0] == "enable" {
+			go c.EnableFixedHeight()
+		} else {
+			c.desk.ResetListeners()
 		}
 	case Announce:
 		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
@@ -154,6 +162,31 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 	default:
 		logger.Printf("Unrecognized command %v; skipping\n", message.Action)
 	}
+}
+
+func (c Controller) Move(direction string, time int) {
+	logger.Printf("Moving desk %s for %d", direction, time)
+	switch direction {
+	case "up":
+		c.desk.RaiseForDuration(time)
+	case "down":
+		c.desk.LowerForDuration(time)
+	}
+}
+
+func (c Controller) SetHeight(height string) {
+	logger.Println("Setting height to " + height)
+
+	h, err := strconv.ParseFloat(height, 32)
+	if err != nil || h < 28.1 || h > 47.5 {
+		logger.Printf("Invalid height: %f\n", h)
+		return
+	}
+	c.desk.ChangeToHeight(float32(h))
+}
+
+func (c *Controller) GetHeight() float32 {
+	return c.desk.Height()
 }
 
 func (c Controller) EnableBellToll() {
@@ -191,27 +224,16 @@ func (c Controller) DisableBellToll() {
 	c.bellTollKill <- true
 }
 
-func (c *Controller) GetHeight() float32 {
-	return c.desk.Height()
+func (c Controller) EnableFixedHeight() {
+	c.desk.AddListener(new(FixedHeightListener))
 }
 
-func (c Controller) SetHeight(height string) {
-	logger.Println("Setting height to " + height)
-
-	h, err := strconv.ParseFloat(height, 32)
-	if err != nil || h < 28.1 || h > 47.5 {
-		logger.Printf("Invalid height: %f\n", h)
-		return
-	}
-	c.desk.ChangeToHeight(float32(h))
+// FixedHeightListener is a listener that will reset the desk to a configured height.
+type FixedHeightListener struct {
+	EmptyListener
+	height float32
 }
 
-func (c Controller) Move(direction string, time int) {
-	logger.Printf("Moving desk %s for %d", direction, time)
-	switch direction {
-	case "up":
-		c.desk.RaiseForDuration(time)
-	case "down":
-		c.desk.LowerForDuration(time)
-	}
+func (listener FixedHeightListener) HeightChanged(newHeight float32) {
+	logger.Println("Listener notified of height change")
 }
