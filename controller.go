@@ -236,16 +236,17 @@ type FixedHeightListener struct {
 	EmptyListener
 	height string
 
-	chanMutex        sync.Mutex
-	resetKillChannel chan bool
+	chanMutex         sync.Mutex
+	resetKillChannels []chan bool
 }
 
 func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 	// If we've already kicked off a reset timer then kill it before scheduling a new one.
 	listener.chanMutex.Lock()
-	if listener.resetKillChannel != nil {
-		listener.resetKillChannel <- true
+	for _, c := range listener.resetKillChannels {
+		c <- true
 	}
+	listener.resetKillChannels = make([]chan bool, 0)
 	listener.chanMutex.Unlock()
 
 	go func() {
@@ -255,21 +256,22 @@ func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 			numSeconds = 10
 		}
 		timer := time.NewTimer(time.Duration(numSeconds) * time.Second)
+		killChannel := make(chan bool, 1)
 
+		// Note that we never remove the channels from the list because they're
+		// unbuffered and will not block the caller or stick around in memory.
 		listener.chanMutex.Lock()
-		listener.resetKillChannel = make(chan bool, 1)
+		listener.resetKillChannels = append(listener.resetKillChannels, killChannel)
 		listener.chanMutex.Unlock()
 
 		select {
-		case <-listener.resetKillChannel:
+		case <-killChannel:
 			// Do nothing; a new timer is being scheduled.
 		case <-timer.C:
 			logger.Println("Resetting height to " + listener.height)
+			controller.desk.Stop()
+			time.Sleep(1000)
 			controller.SetHeight(listener.height)
-
-			listener.chanMutex.Lock()
-			listener.resetKillChannel = nil
-			listener.chanMutex.Unlock()
 		}
 	}()
 }
