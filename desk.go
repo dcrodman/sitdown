@@ -67,6 +67,7 @@ func (d *Desk) Setup(log *log.Logger) {
 
 func (d *Desk) Cleanup() {
 	defer rpio.Close()
+	d.Stop()
 	d.pinButtonUp.PullOff()
 	d.pinButtonDown.PullOff()
 }
@@ -130,15 +131,19 @@ func (d Desk) ChangeToHeight(height float32) {
 }
 
 func (d Desk) raise() {
+	d.pinButtonUp.PullDown()
 	d.pinButtonUp.Low()
 }
 
 func (d Desk) lower() {
+	d.pinButtonDown.PullDown()
 	d.pinButtonDown.Low()
 }
 
 func (d Desk) Stop() {
+	d.pinButtonUp.PullUp()
 	d.pinButtonUp.High()
+	d.pinButtonDown.PullUp()
 	d.pinButtonDown.High()
 }
 

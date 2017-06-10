@@ -22,11 +22,19 @@ var (
 
 func main() {
 	commandMode := flag.Bool("c", false, "Start the server in command mode")
+	resetMode := flag.Bool("r", false, "Reset the pins to HIGH in case they're stuck")
 	port := flag.String("p", "8080", "Listen on the specified port")
 	flag.Parse()
 
 	controller = new(Controller)
 	controller.InitFromConfig()
+
+	// Only set the pins back to HIGH and then exit.
+	if *resetMode {
+		controller.EnterDeskControlMode()
+		controller.Cleanup()
+		return
+	}
 
 	registerSignalHandlers()
 
