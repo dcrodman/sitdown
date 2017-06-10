@@ -104,7 +104,7 @@ func (d Desk) LowerForDuration(duration int) {
 	}
 }
 
-func (d Desk) ChangeToHeight(height float32) {
+func (d *Desk) ChangeToHeight(height float32) {
 	d.lock()
 	defer d.unlock()
 	var acceptableRange float32 = 0.75
