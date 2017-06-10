@@ -31,6 +31,7 @@ func main() {
 
 	// Only set the pins back to HIGH and then exit.
 	if *resetMode {
+		logger.Println("Clearing pins and exiting")
 		controller.desk.Setup(logger)
 		controller.Cleanup()
 		return
