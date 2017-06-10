@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -162,7 +163,15 @@ func (c *Controller) handleDeskControllerMessage(message Message) {
 			c.desk.ResetListeners()
 		} else {
 			logger.Println("Adding FixedHeightListener to desk")
-			c.desk.AddListener(&FixedHeightListener{height: message.Params[0]})
+			convertedHeight, err := strconv.ParseFloat(message.Params[0], 32)
+			if err != nil {
+				logger.Println("Could not parse height; skipping")
+			} else {
+				c.desk.AddListener(&FixedHeightListener{
+					height:          message.Params[0],
+					convertedHeight: float32(convertedHeight),
+				})
+			}
 		}
 	case Announce:
 		logger.Printf("Discovered controller %s (id: %s)\n", message.IPAddr, message.ID)
@@ -235,8 +244,8 @@ func (c *Controller) DisableBellToll() {
 // FixedHeightListener is a listener that will reset the desk to a configured height.
 type FixedHeightListener struct {
 	EmptyListener
-	height string
-
+	height            string
+	convertedHeight   float32
 	chanMutex         sync.Mutex
 	resetKillChannels []chan bool
 }
@@ -249,6 +258,12 @@ func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 	}
 	listener.resetKillChannels = make([]chan bool, 0)
 	listener.chanMutex.Unlock()
+
+	// We were just given a value that isn't a multiple of .3; ignore this so that
+	// the desk doesn't just bounce up and down (which is admittedly amusing).
+	if math.Abs(float64(newHeight-listener.convertedHeight)) <= .3 {
+		return
+	}
 
 	go func() {
 		defer func() {
