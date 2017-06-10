@@ -31,7 +31,7 @@ func main() {
 
 	// Only set the pins back to HIGH and then exit.
 	if *resetMode {
-		controller.EnterDeskControlMode()
+		controller.desk.Setup(logger)
 		controller.Cleanup()
 		return
 	}
