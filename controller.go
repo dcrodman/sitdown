@@ -124,6 +124,7 @@ func (c *Controller) EnterDeskControlMode() {
 
 // Cleanup releases the GPIO resources for controlling the desk. Only needed for desk contol mode.
 func (c Controller) Cleanup() {
+	c.desk.ResetListeners()
 	c.desk.Cleanup()
 }
 
@@ -250,6 +251,12 @@ func (listener *FixedHeightListener) HeightChanged(newHeight float32) {
 	listener.chanMutex.Unlock()
 
 	go func() {
+		defer func() {
+			// Prevent this handler blowing up from casuing a panic. This may happen
+			// during shutdown if the listener is running.
+			recover()
+		}()
+
 		randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
 		numSeconds := randGen.Int() % 30
 		if numSeconds < 10 {
