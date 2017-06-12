@@ -6,7 +6,7 @@ After=network.target
 User=pi
 Group=pi
 Restart=on-failure
-ExecStart=/usr/bin/sitdown
+ExecStart=/home/pi/godev/bin/sitdown
 
 [Install]
 WantedBy=multi-user.target
