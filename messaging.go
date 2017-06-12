@@ -71,48 +71,59 @@ func (m *Messenger) Cleanup() {
 // info about the device for discovery by other controllers and the command client.
 func (m Messenger) StartAnnouncing() {
 	go func() {
-		interfaces, err := net.Interfaces()
-		if err != nil {
-			logger.Println("ERROR: Could not announce IP address " + err.Error())
-			return
-		}
-
-		var ipAddress string
-		for _, iface := range interfaces {
-			// Interface probably specific to the Raspberry Pi, but eh.
-			if iface.Name == "wlan0" {
-				addrs, err := iface.Addrs()
-				if err != nil {
-					logger.Printf("Could not retrieve Addrs " + err.Error())
-					continue
-				}
-
-			iploop:
-				for _, addr := range addrs {
-					switch t := addr.(type) {
-					case *net.IPNet:
-						if ip4 := addr.(*net.IPNet).IP.To4(); ip4 != nil {
-							ipAddress = ip4.String()
-							break iploop
-						}
-					default:
-						logger.Printf("Found Addr of type %#v\n", t)
-					}
-				}
-			}
-		}
-
+		ipAddress, err := getIPAddress()
 		logger.Println("Announcing IP address: " + ipAddress)
-		m.Publish(Announce, ipAddress, "all", nil)
+		if ipAddress != "" && err != nil {
+			m.Publish(Announce, ipAddress, "all", nil)
+		}
 
 		for {
 			timer := time.NewTimer(1 * time.Minute)
 			select {
 			case <-timer.C:
-				m.Publish(Announce, ipAddress, "all", nil)
+				ipAddress, err := getIPAddress()
+				if err != nil {
+					logger.Printf("Could not determine IP: %s", err.Error())
+				} else if ipAddress != "" {
+					m.Publish(Announce, ipAddress, "all", nil)
+				}
 			}
 		}
 	}()
+}
+
+func getIPAddress() (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		logger.Println("ERROR: Could not announce IP address " + err.Error())
+		return "", err
+	}
+
+	var ipAddress string
+	for _, iface := range interfaces {
+		// Interface probably specific to the Raspberry Pi, but eh.
+		if iface.Name == "wlan0" {
+			addrs, err := iface.Addrs()
+			if err != nil {
+				logger.Printf("Could not retrieve Addrs " + err.Error())
+				continue
+			}
+
+		iploop:
+			for _, addr := range addrs {
+				switch t := addr.(type) {
+				case *net.IPNet:
+					if ip4 := addr.(*net.IPNet).IP.To4(); ip4 != nil {
+						ipAddress = ip4.String()
+						break iploop
+					}
+				default:
+					logger.Printf("Found Addr of type %#v\n", t)
+				}
+			}
+		}
+	}
+	return ipAddress, err
 }
 
 // Subscribe to the PubNub channel and decode messages as they come in.
